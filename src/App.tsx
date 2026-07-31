@@ -9,6 +9,8 @@ import { BlocksDashboard } from "@/components/blocks/BlocksDashboard";
 import { TimerView } from "@/components/timer/TimerView";
 import { WeeklyChart } from "@/components/analytics/WeeklyChart";
 import type { FocusBlock } from "@/types";
+import { Analytics } from "@vercel/analytics/react";
+
 
 export type AppView = "dashboard" | "timer" | "analytics";
 
@@ -73,6 +75,7 @@ function App() {
           </motion.div>
         </AnimatePresence>
       </main>
+      <Analytics />
     </div>
   );
 }
