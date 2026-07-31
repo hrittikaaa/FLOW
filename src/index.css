@@ -1,0 +1,44 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-glass-border;
+  }
+  body {
+    background-image:
+      radial-gradient(circle at 15% 10%, rgba(242, 166, 90, 0.06), transparent 40%),
+      radial-gradient(circle at 85% 90%, rgba(111, 214, 198, 0.06), transparent 40%);
+    background-attachment: fixed;
+  }
+  ::selection {
+    background: rgba(242, 166, 90, 0.25);
+  }
+  :focus-visible {
+    outline: 2px solid #f2a65a;
+    outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer components {
+  .glass-panel {
+    @apply bg-glass-fill backdrop-blur-xl border border-glass-border rounded-xl2 shadow-glass;
+  }
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* slim custom scrollbar */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
