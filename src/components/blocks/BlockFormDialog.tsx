@@ -13,7 +13,7 @@ import { useProfileStore } from "@/store/useProfileStore";
 import { generateSessionPlan } from "@/lib/sessionCalculator";
 import type { AmbientSound, BlockDraft, FocusBlock } from "@/types";
 
-const CATEGORIES = ["Coding", "Studying", "Writing", "Design", "Reading", "Admin", "General"];
+const CATEGORIES = ["Coding", "Leetcode", "Project", "Studying", "Theory", "Lab", "Research", "Planning", "Others"];
 const AMBIENT_OPTIONS: { value: AmbientSound; label: string }[] = [
   { value: "none", label: "None" },
   { value: "white-noise", label: "White noise" },
