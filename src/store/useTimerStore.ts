@@ -33,6 +33,11 @@ function setAnchor(baselineSeconds: number) {
   anchor = { baselineSeconds, anchoredAtMs: Date.now() };
 }
 
+export function getLiveElapsedSeconds(): number | null {
+  if (!anchor) return null;
+  return anchor.baselineSeconds + Math.floor((Date.now() - anchor.anchoredAtMs) / 1000);
+}
+
 /** Marks the current segment complete, logs it, and advances the pointer — without syncing (caller batches the sync). */
 function completeCurrentSegment(blockId: string): boolean {
   const blocksApi = useBlocksStore.getState();

@@ -117,7 +117,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
               <Button
                 id="notif-toggle-btn"
                 size="sm"
-                variant={enabled ? "ghost" : "default"}
+                variant={enabled ? "ghost" : "primary"}
                 onClick={handleNotifToggle}
                 disabled={!supported || permission === "denied" || notifRequesting}
                 className="shrink-0"
