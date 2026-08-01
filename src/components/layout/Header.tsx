@@ -21,7 +21,7 @@ export function Header({ view, onViewChange }: HeaderProps) {
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-focus/15 text-focus">
             <Timer className="h-4 w-4" />
           </div>
-          <span className="font-display text-base font-medium text-paper">Flow</span>
+          <a href="/" className="font-display text-base font-medium text-paper">Flow</a>
         </div>
 
         <Tabs value={view} onValueChange={(v) => onViewChange(v as AppView)}>

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { useProfileStore } from "@/store/useProfileStore";
+import { useNotifications } from "@/hooks/useNotifications";
 
 interface SettingsDialogProps {
   open: boolean;
@@ -17,6 +18,9 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
   const [longBrk, setLongBrk] = useState(15);
   const [sessions, setSessions] = useState(4);
   const [saving, setSaving] = useState(false);
+
+  const { supported, permission, enabled, enable, disable } = useNotifications();
+  const [notifRequesting, setNotifRequesting] = useState(false);
 
   useEffect(() => {
     if (profile && open) {
@@ -37,6 +41,30 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
     });
     setSaving(false);
     onOpenChange(false);
+  };
+
+  const handleNotifToggle = async () => {
+    if (enabled) {
+      disable();
+      return;
+    }
+    setNotifRequesting(true);
+    await enable();
+    setNotifRequesting(false);
+  };
+
+  const notifLabel = () => {
+    if (!supported) return "Not supported in this browser";
+    if (permission === "denied") return "Blocked by browser — allow in site settings";
+    if (enabled) return "Enabled — you'll get alerts on segment & block completion";
+    return "Disabled";
+  };
+
+  const notifBtnLabel = () => {
+    if (notifRequesting) return "Requesting…";
+    if (enabled) return "Disable";
+    if (permission === "denied") return "Blocked";
+    return "Enable";
   };
 
   return (
@@ -78,6 +106,27 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
             </div>
             <Slider min={2} max={8} step={1} value={[sessions]} onValueChange={([v]) => setSessions(v)} />
           </div>
+
+          {/* ── Desktop Notifications ───────────────────────────────────── */}
+          <div className="rounded-lg border border-white/10 bg-white/5 px-4 py-3 space-y-2">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-base leading-none">🔔</span>
+                <Label className="leading-tight">Desktop notifications</Label>
+              </div>
+              <Button
+                id="notif-toggle-btn"
+                size="sm"
+                variant={enabled ? "ghost" : "primary"}
+                onClick={handleNotifToggle}
+                disabled={!supported || permission === "denied" || notifRequesting}
+                className="shrink-0"
+              >
+                {notifBtnLabel()}
+              </Button>
+            </div>
+            <p className="text-xs text-muted leading-snug">{notifLabel()}</p>
+          </div>
         </div>
 
         <DialogFooter>
@@ -92,3 +141,4 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
     </Dialog>
   );
 }
+

@@ -1,7 +1,11 @@
 import { create } from "zustand";
 import { useBlocksStore } from "@/store/useBlocksStore";
 import { fireNotification } from "@/hooks/useNotifications";
+<<<<<<< HEAD
+import { playChime } from "@/lib/notificationSound";
+=======
 
+>>>>>>> 70bd910801e712d9c1a24ce1f32b0865a15948b9
 
 let intervalId: ReturnType<typeof setInterval> | null = null;
 let ticksSinceSync = 0;
@@ -45,7 +49,12 @@ function setAnchor(baselineSeconds: number) {
   anchor = { baselineSeconds, anchoredAtMs: Date.now() };
 }
 
-/** Marks the current segment complete, logs it, and advances the pointer — without syncing (caller batches the sync). */
+export function getLiveElapsedSeconds(): number | null {
+  if (!anchor) return null;
+  return anchor.baselineSeconds + Math.floor((Date.now() - anchor.anchoredAtMs) / 1000);
+}
+
+/** Marks the current segment complete, logs it, advances the pointer, and fires a notification + chime. */
 function completeCurrentSegment(blockId: string): boolean {
   const blocksApi = useBlocksStore.getState();
   // Capture the segment info we need BEFORE any mutations.
@@ -73,8 +82,9 @@ function completeCurrentSegment(blockId: string): boolean {
     status: isFinished ? "completed" : "active",
   });
 
-  // Fire desktop notification for this segment transition.
+  // Fire notification + chime based on what just completed
   if (isFinished) {
+    playChime("completed");
     fireNotification(`✅ "${block.name}" complete!`, {
       body: `Great work! You finished all ${block.totalMinutes} minutes.`,
       tag: `pf-block-${blockId}`,
@@ -83,11 +93,15 @@ function completeCurrentSegment(blockId: string): boolean {
     const nextSegment = block.segments[nextIndex];
     if (nextSegment) {
       if (nextSegment.kind === "focus") {
+        // Break segment done → focus starts
+        playChime("break");
         fireNotification("☕ Break over — time to focus!", {
           body: `Next up: ${nextSegment.durationMinutes} min focus session in "${block.name}".`,
           tag: `pf-segment-${blockId}`,
         });
       } else {
+        // Focus segment done → break starts
+        playChime("focus");
         fireNotification("🎉 Focus session done!", {
           body: `Take a ${nextSegment.durationMinutes} min ${nextSegment.kind === "long_break" ? "long break" : "break"} — you've earned it.`,
           tag: `pf-segment-${blockId}`,
