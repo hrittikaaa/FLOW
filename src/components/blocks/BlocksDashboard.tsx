@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { AnimatePresence } from "framer-motion";
+import { useMemo, useRef, useState } from "react";
+import { motion } from "framer-motion";
 import { Plus } from "lucide-react";
 import { useBlocksStore } from "@/store/useBlocksStore";
 import { BlockCard } from "@/components/blocks/BlockCard";
@@ -19,12 +19,59 @@ export function BlocksDashboard({ onSelectBlock }: BlocksDashboardProps) {
   const [formOpen, setFormOpen] = useState(false);
   const [editingBlock, setEditingBlock] = useState<FocusBlock | undefined>(undefined);
   const [tab, setTab] = useState<FilterTab>("all");
+  const [draggedId, setDraggedId] = useState<string | null>(null);
 
-  const filtered = useMemo(() => {
+  const baseFiltered = useMemo(() => {
     if (tab === "all") return blocks.filter((b) => b.status !== "archived");
     if (tab === "completed") return blocks.filter((b) => b.status === "completed");
     return blocks.filter((b) => b.status === tab);
   }, [blocks, tab]);
+
+  // Local ordered list — keeps the user's drag order in-session; resets when
+  // the underlying filtered set changes (new block created, tab switch, etc.).
+  const [orderedIds, setOrderedIds] = useState<string[]>([]);
+  const baseIds = baseFiltered.map((b) => b.id).join(",");
+  const [prevBaseIds, setPrevBaseIds] = useState<string>("");
+  if (baseIds !== prevBaseIds) {
+    setPrevBaseIds(baseIds);
+    setOrderedIds(baseFiltered.map((b) => b.id));
+  }
+
+  // Derive the rendered block list from orderedIds
+  const filtered = useMemo(() => {
+    const map = new Map(baseFiltered.map((b) => [b.id, b]));
+    return orderedIds.flatMap((id) => {
+      const b = map.get(id);
+      return b ? [b] : [];
+    });
+  }, [orderedIds, baseFiltered]);
+
+  // ref so drag enter handlers can read the current dragged id without stale closure
+  const draggedIdRef = useRef<string | null>(null);
+
+  function handleDragStart(id: string) {
+    draggedIdRef.current = id;
+    setDraggedId(id);
+  }
+
+  function handleDragEnd() {
+    draggedIdRef.current = null;
+    setDraggedId(null);
+  }
+
+  function handleDragEnter(hoverId: string) {
+    const from = draggedIdRef.current;
+    if (!from || from === hoverId) return;
+    setOrderedIds((prev) => {
+      const arr = [...prev];
+      const fromIdx = arr.indexOf(from);
+      const toIdx = arr.indexOf(hoverId);
+      if (fromIdx === -1 || toIdx === -1) return prev;
+      arr.splice(fromIdx, 1);
+      arr.splice(toIdx, 0, from);
+      return arr;
+    });
+  }
 
   return (
     <div className="space-y-5">
@@ -60,20 +107,41 @@ export function BlocksDashboard({ onSelectBlock }: BlocksDashboardProps) {
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <AnimatePresence>
-            {filtered.map((block) => (
-              <BlockCard
+          {filtered.map((block) => {
+            const isDragging = draggedId === block.id;
+            return (
+              <motion.div
                 key={block.id}
-                block={block}
-                onStart={onSelectBlock}
-                onEdit={(b) => {
-                  setEditingBlock(b);
-                  setFormOpen(true);
+                layout
+                layoutId={block.id}
+                animate={{
+                  opacity: isDragging ? 0.45 : 1,
+                  scale: isDragging ? 1.02 : 1,
                 }}
-                onDelete={(b) => deleteBlock(b.id)}
-              />
-            ))}
-          </AnimatePresence>
+                transition={{ duration: 0.15 }}
+                style={{ cursor: isDragging ? "grabbing" : "grab" }}
+                draggable
+                onDragStart={() => handleDragStart(block.id)}
+                onDragEnd={handleDragEnd}
+                onDragEnter={(e) => {
+                  e.preventDefault();
+                  handleDragEnter(block.id);
+                }}
+                onDragOver={(e) => e.preventDefault()}
+              >
+                <BlockCard
+                  block={block}
+                  onStart={onSelectBlock}
+                  onEdit={(b) => {
+                    setEditingBlock(b);
+                    setFormOpen(true);
+                  }}
+                  onDelete={(b) => deleteBlock(b.id)}
+                  isDragging={isDragging}
+                />
+              </motion.div>
+            );
+          })}
         </div>
       )}
 
