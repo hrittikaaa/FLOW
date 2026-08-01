@@ -20,7 +20,7 @@ interface TimerViewProps {
 
 export function TimerView({ blockId, onPickBlock }: TimerViewProps) {
   const blocks = useBlocksStore((s) => s.blocks);
-  const { activeBlockId, isRunning, start, pause, resume, skipSegment, stopAndReset } = useTimerStore();
+  const { activeBlockId, isRunning, start, pause, resume, skipSegment, stopAndReset, restartSegment, restartBlock } = useTimerStore();
 
   const block = useMemo(() => blocks.find((b) => b.id === blockId) ?? null, [blocks, blockId]);
   const running = isRunning && activeBlockId === blockId;
@@ -120,9 +120,15 @@ export function TimerView({ blockId, onPickBlock }: TimerViewProps) {
             elapsedSeconds={block.elapsedSecondsInSegment}
           />
           {isComplete ? (
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-center gap-3">
               <span className="font-display text-3xl font-semibold text-focus">Complete</span>
-              <span className="mt-2 text-sm text-muted">{block.name}</span>
+              <span className="mt-1 text-sm text-muted">{block.name}</span>
+              <button
+                onClick={() => restartBlock(block.id)}
+                className="mt-2 flex items-center gap-1.5 rounded-full border border-glass-border bg-white/5 px-4 py-1.5 text-xs text-paper/80 hover:bg-white/10 hover:text-paper transition-colors"
+              >
+                <span>↺</span> Restart block
+              </button>
             </div>
           ) : (
             <TimerFace
@@ -141,6 +147,8 @@ export function TimerView({ blockId, onPickBlock }: TimerViewProps) {
             onPlayPause={handlePlayPause}
             onSkip={skipSegment}
             onStop={() => stopAndReset(block.id)}
+            onRestartSegment={restartSegment}
+            onRestartBlock={() => restartBlock(block.id)}
           />
         )}
 

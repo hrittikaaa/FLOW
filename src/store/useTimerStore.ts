@@ -1,7 +1,11 @@
 import { create } from "zustand";
 import { useBlocksStore } from "@/store/useBlocksStore";
 import { fireNotification } from "@/hooks/useNotifications";
+<<<<<<< HEAD
 import { playChime } from "@/lib/notificationSound";
+=======
+
+>>>>>>> 70bd910801e712d9c1a24ce1f32b0865a15948b9
 
 let intervalId: ReturnType<typeof setInterval> | null = null;
 let ticksSinceSync = 0;
@@ -23,6 +27,16 @@ const SYNC_EVERY_N_TICKS = 5;
  */
 let anchor: { baselineSeconds: number; anchoredAtMs: number } | null = null;
 
+/**
+ * Returns the live elapsed seconds in the current segment by reading the
+ * wall clock directly from the anchor — never stale, no tick jitter.
+ * Returns null when the timer is not running.
+ */
+export function getLiveElapsedSeconds(): number | null {
+  if (!anchor) return null;
+  return anchor.baselineSeconds + (Date.now() - anchor.anchoredAtMs) / 1000;
+}
+
 function clearTick() {
   if (intervalId) {
     clearInterval(intervalId);
@@ -43,18 +57,24 @@ export function getLiveElapsedSeconds(): number | null {
 /** Marks the current segment complete, logs it, advances the pointer, and fires a notification + chime. */
 function completeCurrentSegment(blockId: string): boolean {
   const blocksApi = useBlocksStore.getState();
+  // Capture the segment info we need BEFORE any mutations.
   const block = blocksApi.blocks.find((b) => b.id === blockId);
   if (!block) return true;
 
-  const currentSegment = block.segments[block.currentSegmentIndex];
+  const currentSegmentIndex = block.currentSegmentIndex;
+  const currentSegment = block.segments[currentSegmentIndex];
+  const totalSegments = block.segments.length;
+
   if (currentSegment) {
     blocksApi.markSegmentComplete(blockId, currentSegment.id);
     blocksApi.logSession(block, currentSegment.kind, currentSegment.durationMinutes);
   }
 
-  const nextIndex = block.currentSegmentIndex + 1;
-  const isFinished = nextIndex >= block.segments.length;
-  const completedMinutes = block.completedMinutes + (currentSegment?.durationMinutes ?? 0);
+  const nextIndex = currentSegmentIndex + 1;
+  const isFinished = nextIndex >= totalSegments;
+  // Re-read completedMinutes from store after markSegmentComplete may have touched state.
+  const freshBlock = useBlocksStore.getState().blocks.find((b) => b.id === blockId);
+  const completedMinutes = (freshBlock?.completedMinutes ?? block.completedMinutes) + (currentSegment?.durationMinutes ?? 0);
 
   blocksApi.patchRuntimeLocal(blockId, {
     currentSegmentIndex: nextIndex,
@@ -66,25 +86,27 @@ function completeCurrentSegment(blockId: string): boolean {
   if (isFinished) {
     playChime("completed");
     fireNotification(`✅ "${block.name}" complete!`, {
-      body: "You finished all your focus sessions. Great work!",
+      body: `Great work! You finished all ${block.totalMinutes} minutes.`,
+      tag: `pf-block-${blockId}`,
     });
-  } else {
+  } else if (currentSegment) {
     const nextSegment = block.segments[nextIndex];
-    if (currentSegment?.kind === "focus") {
-      // Focus segment done → break starts
-      playChime("focus");
-      const isLongBreak = nextSegment?.kind === "long_break";
-      fireNotification(isLongBreak ? "☕ Long break time!" : "☕ Break time!", {
-        body: isLongBreak
-          ? `Take a longer breather — you've earned it.`
-          : `${nextSegment?.durationMinutes ?? 5}-minute break starting now.`,
-      });
-    } else {
-      // Break segment done → focus starts
-      playChime("break");
-      fireNotification("🎯 Back to focus!", {
-        body: `${nextSegment?.durationMinutes ?? 25}-minute focus session starting now.`,
-      });
+    if (nextSegment) {
+      if (nextSegment.kind === "focus") {
+        // Break segment done → focus starts
+        playChime("break");
+        fireNotification("☕ Break over — time to focus!", {
+          body: `Next up: ${nextSegment.durationMinutes} min focus session in "${block.name}".`,
+          tag: `pf-segment-${blockId}`,
+        });
+      } else {
+        // Focus segment done → break starts
+        playChime("focus");
+        fireNotification("🎉 Focus session done!", {
+          body: `Take a ${nextSegment.durationMinutes} min ${nextSegment.kind === "long_break" ? "long break" : "break"} — you've earned it.`,
+          tag: `pf-segment-${blockId}`,
+        });
+      }
     }
   }
 
@@ -149,8 +171,11 @@ function tick(blockId: string) {
     }
   }
 
-  // Re-anchor to "now" so future ticks measure from a fresh, precise point.
-  setAnchor(remaining);
+  // Write elapsed into state (for Supabase sync + resuming after page reload)
+  // but do NOT re-anchor here — the anchor keeps accumulating from its original
+  // start point, which gives sub-second precision on the live display.
+  // Only re-anchor when crossing a segment boundary (done above via setAnchor(0)
+  // inside completeCurrentSegment's caller path) or on resume.
 
   ticksSinceSync += 1;
   if (ticksSinceSync >= SYNC_EVERY_N_TICKS) {
@@ -179,6 +204,10 @@ interface TimerState {
   resume: () => void;
   skipSegment: () => void;
   stopAndReset: (blockId: string) => void;
+  /** Resets elapsed time of the current segment to zero and re-anchors the clock. */
+  restartSegment: () => void;
+  /** Fully resets the block (all segments + runtime) back to its initial state. */
+  restartBlock: (blockId: string) => void;
 }
 
 export const useTimerStore = create<TimerState>((set, get) => ({
@@ -248,5 +277,24 @@ export const useTimerStore = create<TimerState>((set, get) => ({
     });
     blocksApi.syncRuntime(blockId);
     set({ activeBlockId: null, isRunning: false, isStrictLocked: false });
+  },
+
+  restartSegment: () => {
+    const { activeBlockId, isRunning } = get();
+    if (!activeBlockId) return;
+    const blocksApi = useBlocksStore.getState();
+    // Reset elapsed time in local state and re-anchor the wall clock.
+    blocksApi.patchRuntimeLocal(activeBlockId, { elapsedSecondsInSegment: 0 });
+    if (isRunning) {
+      setAnchor(0);
+    }
+    blocksApi.syncRuntime(activeBlockId);
+  },
+
+  restartBlock: (blockId) => {
+    clearTick();
+    set({ activeBlockId: null, isRunning: false, isStrictLocked: false });
+    // resetBlock handles both local state and DB persistence.
+    useBlocksStore.getState().resetBlock(blockId);
   },
 }));
