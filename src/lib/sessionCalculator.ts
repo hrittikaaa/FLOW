@@ -38,8 +38,8 @@ export function generateSessionPlan(ratio: SessionRatio): SegmentPlan[] {
   let position = 0;
 
   while (remaining > 0) {
-    // Lay down a focus segment — trim it if it's the last sliver of time.
-    const thisFocus = Math.min(focusMinutes, remaining);
+    // Lay down a full focus segment — don't trim it to preserve Pomodoro length
+    const thisFocus = focusMinutes;
     segments.push({ position: position++, kind: "focus", durationMinutes: thisFocus });
     remaining -= thisFocus;
     focusCount += 1;
@@ -52,7 +52,8 @@ export function generateSessionPlan(ratio: SessionRatio): SegmentPlan[] {
 
     if (nextBreakLength <= 0) continue;
 
-    const thisBreak = Math.min(nextBreakLength, remaining);
+    // Lay down a full break segment
+    const thisBreak = nextBreakLength;
     segments.push({ position: position++, kind, durationMinutes: thisBreak });
     remaining -= thisBreak;
   }
