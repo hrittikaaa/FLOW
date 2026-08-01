@@ -90,13 +90,14 @@ export function BlockFormDialog({ open, onOpenChange, existingBlock, allBlocks }
   );
 
   const handleSave = async () => {
-    if (!draft.name.trim() || saving) return;
+    if (saving) return;
+    const finalName = draft.name.trim() || "Untitled Block";
     setSaving(true);
     if (isEdit && existingBlock) {
-      await updateBlockMeta(existingBlock.id, draft);
+      await updateBlockMeta(existingBlock.id, { ...draft, name: finalName });
     } else {
       const taskTitles = goalsText.split("\n").map((t) => t.trim()).filter(Boolean);
-      await createBlock({ ...draft, taskTitles });
+      await createBlock({ ...draft, name: finalName, taskTitles });
     }
     setSaving(false);
     onOpenChange(false);
@@ -271,7 +272,7 @@ export function BlockFormDialog({ open, onOpenChange, existingBlock, allBlocks }
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={handleSave} disabled={isLocked || saving || !draft.name.trim()}>
+          <Button onClick={handleSave} disabled={isLocked || saving}>
             {saving ? "Saving…" : isEdit ? "Save changes" : "Create block"}
           </Button>
         </DialogFooter>
