@@ -8,7 +8,11 @@ import type { Database } from "@/types/database";
 // incoming realtime echo of our own 5-second sync doesn't overwrite smooth
 // local per-second ticking with a slightly-stale read.
 const recentLocalRuntimeWrites = new Map<string, number>();
-const SELF_ECHO_WINDOW_MS = 3000;
+// Must be comfortably larger than SYNC_EVERY_N_TICKS (5 s) + network round-trip
+// so realtime echoes of our own periodic syncRuntime calls are always suppressed.
+// The old 3 s value was shorter than the 5 s sync interval, allowing DB echoes to
+// slip through mid-session and overwrite local state with stale values.
+const SELF_ECHO_WINDOW_MS = 10_000;
 
 type BlockRow = Database["public"]["Tables"]["focus_blocks"]["Row"];
 type SegmentRow = Database["public"]["Tables"]["block_segments"]["Row"];
