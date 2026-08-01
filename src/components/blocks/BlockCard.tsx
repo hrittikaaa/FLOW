@@ -1,4 +1,4 @@
-import { CheckCircle2, MoreHorizontal, Pencil, Play, Trash2 } from "lucide-react";
+import { CheckCircle2, MoreHorizontal, Pencil, Play, RotateCcw, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { CardContent, CardHeader } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -12,6 +12,7 @@ interface BlockCardProps {
   onStart: (block: FocusBlock) => void;
   onEdit: (block: FocusBlock) => void;
   onDelete: (block: FocusBlock) => void;
+  onRestart: (block: FocusBlock) => void;
   isDragging?: boolean;
 }
 
@@ -23,7 +24,7 @@ const statusStyles: Record<FocusBlock["status"], string> = {
   archived: "bg-white/5 text-muted",
 };
 
-export function BlockCard({ block, onStart, onEdit, onDelete, isDragging }: BlockCardProps) {
+export function BlockCard({ block, onStart, onEdit, onDelete, onRestart, isDragging }: BlockCardProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const doneTasks = block.tasks.filter((t) => t.isDone).length;
   const progressPct = Math.min(100, (block.completedMinutes / Math.max(1, block.totalMinutes)) * 100);
@@ -88,6 +89,16 @@ export function BlockCard({ block, onStart, onEdit, onDelete, isDragging }: Bloc
                     className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-paper/90 hover:bg-white/5 disabled:opacity-40"
                   >
                     <Pencil className="h-3.5 w-3.5" /> Edit
+                  </button>
+                  <button
+                    disabled={isLocked}
+                    onClick={() => {
+                      onRestart(block);
+                      setMenuOpen(false);
+                    }}
+                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-rest hover:bg-white/5 disabled:opacity-40"
+                  >
+                    <RotateCcw className="h-3.5 w-3.5" /> Restart
                   </button>
                   <button
                     disabled={isLocked}
