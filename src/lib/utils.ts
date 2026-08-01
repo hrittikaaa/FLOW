@@ -17,6 +17,22 @@ export function getCategoryColor(category: string): string {
   return CATEGORY_PALETTE[hash % CATEGORY_PALETTE.length];
 }
 
+/**
+ * Returns a CSS gradient string for a category's border.
+ * Sweeps from the category color → an adjacent palette color → back,
+ * giving a full-perimeter glowing gradient border look.
+ */
+export function getCategoryGradient(category: string): string {
+  let hash = 0;
+  for (let i = 0; i < category.length; i++) {
+    hash = (hash * 31 + category.charCodeAt(i)) >>> 0;
+  }
+  const idx = hash % CATEGORY_PALETTE.length;
+  const c1 = CATEGORY_PALETTE[idx];
+  const c2 = CATEGORY_PALETTE[(idx + 2) % CATEGORY_PALETTE.length];
+  return `linear-gradient(135deg, ${c1} 0%, ${c2} 50%, ${c1} 100%)`;
+}
+
 export function formatClock(totalSeconds: number): string {
   const s = Math.max(0, Math.ceil(totalSeconds));
   const m = Math.floor(s / 60);

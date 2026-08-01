@@ -1,9 +1,9 @@
 import { CheckCircle2, MoreHorizontal, Pencil, Play, Trash2 } from "lucide-react";
 import { useState } from "react";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { CardContent, CardHeader } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { formatMinutesAsHours, getCategoryColor } from "@/lib/utils";
+import { formatMinutesAsHours, getCategoryColor, getCategoryGradient } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import type { FocusBlock } from "@/types";
 
@@ -29,22 +29,33 @@ export function BlockCard({ block, onStart, onEdit, onDelete, isDragging }: Bloc
   const progressPct = Math.min(100, (block.completedMinutes / Math.max(1, block.totalMinutes)) * 100);
   const isLocked = block.strictMode && block.status === "active";
   const categoryColor = getCategoryColor(block.category);
+  const categoryGradient = getCategoryGradient(block.category);
 
   return (
-    <Card
+    // Gradient border wrapper: gradient is the background, inner div clips it to just a border ring
+    <div
       className={cn(
-        "relative overflow-hidden transition-all hover:border-white/20",
-        isDragging && "shadow-2xl ring-2 ring-white/20"
+        "rounded-xl2 p-[1.5px] transition-all duration-300",
+        isDragging && "scale-[1.02]"
       )}
       style={{
-        borderLeftColor: categoryColor,
-        borderLeftWidth: "3px",
+        background: categoryGradient,
+        boxShadow: isDragging
+          ? `0 0 28px -4px ${categoryColor}99, 0 8px 32px rgba(0,0,0,0.45)`
+          : `0 0 14px -6px ${categoryColor}55, 0 4px 16px rgba(0,0,0,0.3)`,
       }}
     >
+      {/* Inner card — solid dark fill so gradient shows only as the border ring */}
+      <div className="rounded-[calc(1.25rem-1.5px)] bg-[#1B1B29] backdrop-blur-xl overflow-hidden h-full">
         <CardHeader className="pb-2">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
-              <span className={cn("mb-1.5 inline-block rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide", statusStyles[block.status])}>
+              <span
+                className={cn(
+                  "mb-1.5 inline-block rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide",
+                  statusStyles[block.status]
+                )}
+              >
                 {block.status}
               </span>
               <h3 className="truncate font-display text-base font-medium text-paper">{block.name}</h3>
@@ -123,6 +134,7 @@ export function BlockCard({ block, onStart, onEdit, onDelete, isDragging }: Bloc
             {block.status === "active" ? "Resume in timer" : block.status === "completed" ? "View" : "Start"}
           </Button>
         </CardContent>
-      </Card>
+      </div>
+    </div>
   );
 }
