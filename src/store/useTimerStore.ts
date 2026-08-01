@@ -1,5 +1,7 @@
 import { create } from "zustand";
 import { useBlocksStore } from "@/store/useBlocksStore";
+import { fireNotification } from "@/hooks/useNotifications";
+import { playChime } from "@/lib/notificationSound";
 
 let intervalId: ReturnType<typeof setInterval> | null = null;
 let ticksSinceSync = 0;
@@ -38,7 +40,7 @@ export function getLiveElapsedSeconds(): number | null {
   return anchor.baselineSeconds + Math.floor((Date.now() - anchor.anchoredAtMs) / 1000);
 }
 
-/** Marks the current segment complete, logs it, and advances the pointer — without syncing (caller batches the sync). */
+/** Marks the current segment complete, logs it, advances the pointer, and fires a notification + chime. */
 function completeCurrentSegment(blockId: string): boolean {
   const blocksApi = useBlocksStore.getState();
   const block = blocksApi.blocks.find((b) => b.id === blockId);
@@ -59,6 +61,32 @@ function completeCurrentSegment(blockId: string): boolean {
     completedMinutes,
     status: isFinished ? "completed" : "active",
   });
+
+  // Fire notification + chime based on what just completed
+  if (isFinished) {
+    playChime("completed");
+    fireNotification(`✅ "${block.name}" complete!`, {
+      body: "You finished all your focus sessions. Great work!",
+    });
+  } else {
+    const nextSegment = block.segments[nextIndex];
+    if (currentSegment?.kind === "focus") {
+      // Focus segment done → break starts
+      playChime("focus");
+      const isLongBreak = nextSegment?.kind === "long_break";
+      fireNotification(isLongBreak ? "☕ Long break time!" : "☕ Break time!", {
+        body: isLongBreak
+          ? `Take a longer breather — you've earned it.`
+          : `${nextSegment?.durationMinutes ?? 5}-minute break starting now.`,
+      });
+    } else {
+      // Break segment done → focus starts
+      playChime("break");
+      fireNotification("🎯 Back to focus!", {
+        body: `${nextSegment?.durationMinutes ?? 25}-minute focus session starting now.`,
+      });
+    }
+  }
 
   return isFinished;
 }
