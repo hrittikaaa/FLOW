@@ -97,6 +97,9 @@ interface BlocksState {
   syncRuntime: (id: string) => Promise<void>;
   markSegmentComplete: (blockId: string, segmentId: string) => Promise<void>;
   logSession: (block: FocusBlock, kind: SegmentKind, durationMinutes: number) => Promise<void>;
+  /** Resets a block fully back to its initial state: marks all segments incomplete in the DB
+   *  and zeroes all runtime counters so it can be run again from scratch. */
+  resetBlock: (id: string) => Promise<void>;
 
   /** Refetches a single block (with its segments + tasks) and merges it into state. */
   refetchBlockDetail: (blockId: string) => Promise<void>;
@@ -401,6 +404,47 @@ export const useBlocksStore = create<BlocksState>((set, get) => ({
       kind,
       duration_minutes: durationMinutes,
     });
+  },
+
+  resetBlock: async (id) => {
+    // Optimistically reset local state immediately so the UI responds at once.
+    set({
+      blocks: get().blocks.map((b) =>
+        b.id === id
+          ? {
+              ...b,
+              status: "planned",
+              currentSegmentIndex: 0,
+              elapsedSecondsInSegment: 0,
+              completedMinutes: 0,
+              lastStartedAt: null,
+              segments: b.segments.map((s) => ({
+                ...s,
+                isCompleted: false,
+                completedAt: null,
+              })),
+            }
+          : b
+      ),
+    });
+
+    // Persist to DB in parallel: reset all segment flags + block runtime.
+    await Promise.all([
+      supabase
+        .from("block_segments")
+        .update({ is_completed: false, completed_at: null })
+        .eq("block_id", id),
+      supabase
+        .from("focus_blocks")
+        .update({
+          status: "planned",
+          current_segment_index: 0,
+          elapsed_seconds_in_segment: 0,
+          completed_minutes: 0,
+          last_started_at: null,
+        })
+        .eq("id", id),
+    ]);
   },
 
   refetchBlockDetail: async (blockId) => {

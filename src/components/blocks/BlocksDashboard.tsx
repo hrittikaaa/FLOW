@@ -15,7 +15,7 @@ interface BlocksDashboardProps {
 type FilterTab = "all" | "active" | "planned" | "completed";
 
 export function BlocksDashboard({ onSelectBlock }: BlocksDashboardProps) {
-  const { blocks, deleteBlock } = useBlocksStore();
+  const { blocks, deleteBlock, resetBlock } = useBlocksStore();
   const [formOpen, setFormOpen] = useState(false);
   const [editingBlock, setEditingBlock] = useState<FocusBlock | undefined>(undefined);
   const [tab, setTab] = useState<FilterTab>("all");
@@ -137,6 +137,7 @@ export function BlocksDashboard({ onSelectBlock }: BlocksDashboardProps) {
                     setFormOpen(true);
                   }}
                   onDelete={(b) => deleteBlock(b.id)}
+                  onRestart={(b) => resetBlock(b.id)}
                   isDragging={isDragging}
                 />
               </motion.div>

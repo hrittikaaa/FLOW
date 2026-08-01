@@ -190,6 +190,10 @@ interface TimerState {
   resume: () => void;
   skipSegment: () => void;
   stopAndReset: (blockId: string) => void;
+  /** Resets elapsed time of the current segment to zero and re-anchors the clock. */
+  restartSegment: () => void;
+  /** Fully resets the block (all segments + runtime) back to its initial state. */
+  restartBlock: (blockId: string) => void;
 }
 
 export const useTimerStore = create<TimerState>((set, get) => ({
@@ -259,5 +263,24 @@ export const useTimerStore = create<TimerState>((set, get) => ({
     });
     blocksApi.syncRuntime(blockId);
     set({ activeBlockId: null, isRunning: false, isStrictLocked: false });
+  },
+
+  restartSegment: () => {
+    const { activeBlockId, isRunning } = get();
+    if (!activeBlockId) return;
+    const blocksApi = useBlocksStore.getState();
+    // Reset elapsed time in local state and re-anchor the wall clock.
+    blocksApi.patchRuntimeLocal(activeBlockId, { elapsedSecondsInSegment: 0 });
+    if (isRunning) {
+      setAnchor(0);
+    }
+    blocksApi.syncRuntime(activeBlockId);
+  },
+
+  restartBlock: (blockId) => {
+    clearTick();
+    set({ activeBlockId: null, isRunning: false, isStrictLocked: false });
+    // resetBlock handles both local state and DB persistence.
+    useBlocksStore.getState().resetBlock(blockId);
   },
 }));
