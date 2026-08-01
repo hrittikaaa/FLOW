@@ -5,6 +5,18 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+/** Same palette used by the analytics chart – keeps colors consistent across views. */
+const CATEGORY_PALETTE = ["#F2A65A", "#6FD6C6", "#E8697D", "#8B8AFF", "#F2D95C", "#7FC8F8"];
+
+/** Returns a stable hex color for a given category string (deterministic hash). */
+export function getCategoryColor(category: string): string {
+  let hash = 0;
+  for (let i = 0; i < category.length; i++) {
+    hash = (hash * 31 + category.charCodeAt(i)) >>> 0;
+  }
+  return CATEGORY_PALETTE[hash % CATEGORY_PALETTE.length];
+}
+
 export function formatClock(totalSeconds: number): string {
   const s = Math.max(0, Math.ceil(totalSeconds));
   const m = Math.floor(s / 60);

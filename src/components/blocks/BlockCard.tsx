@@ -1,10 +1,9 @@
-import { motion } from "framer-motion";
 import { CheckCircle2, MoreHorizontal, Pencil, Play, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { formatMinutesAsHours } from "@/lib/utils";
+import { formatMinutesAsHours, getCategoryColor } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import type { FocusBlock } from "@/types";
 
@@ -13,6 +12,7 @@ interface BlockCardProps {
   onStart: (block: FocusBlock) => void;
   onEdit: (block: FocusBlock) => void;
   onDelete: (block: FocusBlock) => void;
+  isDragging?: boolean;
 }
 
 const statusStyles: Record<FocusBlock["status"], string> = {
@@ -23,21 +23,24 @@ const statusStyles: Record<FocusBlock["status"], string> = {
   archived: "bg-white/5 text-muted",
 };
 
-export function BlockCard({ block, onStart, onEdit, onDelete }: BlockCardProps) {
+export function BlockCard({ block, onStart, onEdit, onDelete, isDragging }: BlockCardProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const doneTasks = block.tasks.filter((t) => t.isDone).length;
   const progressPct = Math.min(100, (block.completedMinutes / Math.max(1, block.totalMinutes)) * 100);
   const isLocked = block.strictMode && block.status === "active";
+  const categoryColor = getCategoryColor(block.category);
 
   return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -10 }}
-      transition={{ duration: 0.25 }}
+    <Card
+      className={cn(
+        "relative overflow-hidden transition-all hover:border-white/20",
+        isDragging && "shadow-2xl ring-2 ring-white/20"
+      )}
+      style={{
+        borderLeftColor: categoryColor,
+        borderLeftWidth: "3px",
+      }}
     >
-      <Card className="relative overflow-hidden transition-colors hover:border-white/20">
         <CardHeader className="pb-2">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
@@ -45,7 +48,13 @@ export function BlockCard({ block, onStart, onEdit, onDelete }: BlockCardProps) 
                 {block.status}
               </span>
               <h3 className="truncate font-display text-base font-medium text-paper">{block.name}</h3>
-              <p className="text-xs text-muted">{block.category}</p>
+              <p className="flex items-center gap-1.5 text-xs text-muted">
+                <span
+                  className="inline-block h-2 w-2 rounded-full shrink-0"
+                  style={{ backgroundColor: categoryColor }}
+                />
+                {block.category}
+              </p>
             </div>
             <div className="relative shrink-0">
               <button
@@ -115,6 +124,5 @@ export function BlockCard({ block, onStart, onEdit, onDelete }: BlockCardProps) 
           </Button>
         </CardContent>
       </Card>
-    </motion.div>
   );
 }
