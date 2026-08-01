@@ -1,8 +1,8 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { AlertTriangle, ListChecks } from "lucide-react";
 import { useBlocksStore } from "@/store/useBlocksStore";
-import { useTimerStore } from "@/store/useTimerStore";
+import { useTimerStore, getLiveElapsedSeconds } from "@/store/useTimerStore";
 import { useStrictModeGuard } from "@/hooks/useStrictModeGuard";
 import { BlockRing } from "@/components/timer/BlockRing";
 import { TimerFace } from "@/components/timer/TimerFace";
@@ -38,9 +38,43 @@ export function TimerView({ blockId, onPickBlock }: TimerViewProps) {
   }
 
   const currentSegment = block.segments[block.currentSegmentIndex];
-  const secondsRemaining = currentSegment
-    ? currentSegment.durationMinutes * 60 - block.elapsedSecondsInSegment
-    : 0;
+  const segmentDurationSeconds = currentSegment ? currentSegment.durationMinutes * 60 : 0;
+
+  // Live countdown: use a rAF loop to read directly from the wall-clock anchor
+  // so the display is smooth and never depends on when the 1 s interval fires.
+  const [liveElapsed, setLiveElapsed] = useState<number>(
+    block.elapsedSecondsInSegment
+  );
+  const rafRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!running) {
+      // Paused / stopped — cancel any live loop and show the persisted state.
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+      setLiveElapsed(block.elapsedSecondsInSegment);
+      return;
+    }
+
+    // Running: continuously read the wall-clock anchor.
+    const loop = () => {
+      const live = getLiveElapsedSeconds();
+      if (live !== null) setLiveElapsed(live);
+      rafRef.current = requestAnimationFrame(loop);
+    };
+    rafRef.current = requestAnimationFrame(loop);
+
+    return () => {
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+    };
+  }, [running, block.elapsedSecondsInSegment]);
+
+  const secondsRemaining = Math.max(0, segmentDurationSeconds - liveElapsed);
   const isComplete = block.status === "completed";
 
   const handlePlayPause = () => {
@@ -112,7 +146,10 @@ export function TimerView({ blockId, onPickBlock }: TimerViewProps) {
 
         <div className="w-full border-t border-glass-border pt-5">
           <TimelineStrip
-            segments={block.segments.map((s) => ({ position: s.position, kind: s.kind, durationMinutes: s.durationMinutes }))}
+            segments={block.segments
+              .filter((s) => !s.isCompleted)
+              .map((s) => ({ position: s.position, kind: s.kind, durationMinutes: s.durationMinutes }))}
+            startAt={new Date(Date.now() - block.elapsedSecondsInSegment * 1000)}
             compact
           />
         </div>

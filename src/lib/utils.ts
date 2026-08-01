@@ -6,7 +6,7 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function formatClock(totalSeconds: number): string {
-  const s = Math.max(0, Math.round(totalSeconds));
+  const s = Math.max(0, Math.ceil(totalSeconds));
   const m = Math.floor(s / 60);
   const sec = s % 60;
   return `${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
