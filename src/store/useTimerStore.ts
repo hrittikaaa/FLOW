@@ -1,11 +1,7 @@
 import { create } from "zustand";
 import { useBlocksStore } from "@/store/useBlocksStore";
 import { fireNotification } from "@/hooks/useNotifications";
-<<<<<<< HEAD
 import { playChime } from "@/lib/notificationSound";
-=======
-
->>>>>>> 70bd910801e712d9c1a24ce1f32b0865a15948b9
 
 let intervalId: ReturnType<typeof setInterval> | null = null;
 let ticksSinceSync = 0;
