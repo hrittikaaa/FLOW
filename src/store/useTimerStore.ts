@@ -1,11 +1,7 @@
 import { create } from "zustand";
 import { useBlocksStore } from "@/store/useBlocksStore";
 import { fireNotification } from "@/hooks/useNotifications";
-<<<<<<< HEAD
 import { playChime } from "@/lib/notificationSound";
-=======
-
->>>>>>> 70bd910801e712d9c1a24ce1f32b0865a15948b9
 
 let intervalId: ReturnType<typeof setInterval> | null = null;
 let ticksSinceSync = 0;
@@ -49,10 +45,6 @@ function setAnchor(baselineSeconds: number) {
   anchor = { baselineSeconds, anchoredAtMs: Date.now() };
 }
 
-export function getLiveElapsedSeconds(): number | null {
-  if (!anchor) return null;
-  return anchor.baselineSeconds + Math.floor((Date.now() - anchor.anchoredAtMs) / 1000);
-}
 
 /** Marks the current segment complete, logs it, advances the pointer, and fires a notification + chime. */
 function completeCurrentSegment(blockId: string): boolean {
