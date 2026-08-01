@@ -12,29 +12,30 @@ interface SessionRow {
   occurred_at: string;
 }
 
-function startOfWeek(date: Date) {
-  const d = new Date(date);
-  const day = d.getDay(); // 0 = Sunday
-  d.setDate(d.getDate() - day);
-  d.setHours(0, 0, 0, 0);
-  return d;
+
+
+const MONTH_NAMES = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
+
+function startOfMonth(year: number, month: number) {
+  return new Date(year, month, 1, 0, 0, 0, 0);
 }
 
-function endOfWeek(ws: Date) {
-  const d = new Date(ws);
-  d.setDate(d.getDate() + 6);
-  d.setHours(23, 59, 59, 999);
-  return d;
+function endOfMonth(year: number, month: number) {
+  return new Date(year, month + 1, 0, 23, 59, 59, 999);
 }
 
-function formatWeekRange(ws: Date) {
-  const we = endOfWeek(ws);
-  const opts: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" };
-  return `${ws.toLocaleDateString(undefined, opts)} – ${we.toLocaleDateString(undefined, opts)}`;
+function daysInMonth(year: number, month: number) {
+  return new Date(year, month + 1, 0).getDate();
 }
 
-export function WeeklyChart() {
-  const [weekOffset, setWeekOffset] = useState(0);
+export function MonthlyChart() {
+  const now = new Date();
+  const [year, setYear] = useState(now.getFullYear());
+  const [month, setMonth] = useState(now.getMonth()); // 0-indexed
+
   const [rows, setRows] = useState<SessionRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [colorMap, setColorMap] = useState<Record<string, string>>({});
@@ -54,25 +55,39 @@ export function WeeklyChart() {
     })();
   }, []);
 
-  const weekStart = useMemo(() => {
-    const base = startOfWeek(new Date());
-    base.setDate(base.getDate() + weekOffset * 7);
-    return base;
-  }, [weekOffset]);
+  const isCurrentMonth = year === now.getFullYear() && month === now.getMonth();
 
-  const weekEnd = useMemo(() => endOfWeek(weekStart), [weekStart]);
-  const isCurrentWeek = weekOffset === 0;
+  function goBack() {
+    if (month === 0) {
+      setMonth(11);
+      setYear((y) => y - 1);
+    } else {
+      setMonth((m) => m - 1);
+    }
+  }
+
+  function goForward() {
+    if (isCurrentMonth) return;
+    if (month === 11) {
+      setMonth(0);
+      setYear((y) => y + 1);
+    } else {
+      setMonth((m) => m + 1);
+    }
+  }
 
   useEffect(() => {
     let active = true;
     setLoading(true);
+    const from = startOfMonth(year, month);
+    const to = endOfMonth(year, month);
     (async () => {
       const { data } = await supabase
         .from("focus_sessions")
         .select("category,duration_minutes,kind,occurred_at")
         .eq("kind", "focus")
-        .gte("occurred_at", weekStart.toISOString())
-        .lte("occurred_at", weekEnd.toISOString());
+        .gte("occurred_at", from.toISOString())
+        .lte("occurred_at", to.toISOString());
       if (active) {
         setRows((data as SessionRow[]) ?? []);
         setLoading(false);
@@ -81,27 +96,35 @@ export function WeeklyChart() {
     return () => {
       active = false;
     };
-  }, [weekStart, weekEnd]);
+  }, [year, month]);
 
   const { chartData, categories } = useMemo(() => {
-    const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const totalDays = daysInMonth(year, month);
     const categorySet = new Set<string>();
+    // key = "1" .. "31"
     const byDay: Record<string, Record<string, number>> = {};
-    days.forEach((d) => (byDay[d] = {}));
+    for (let d = 1; d <= totalDays; d++) byDay[String(d)] = {};
 
     rows.forEach((r) => {
-      const day = days[new Date(r.occurred_at).getDay()];
+      const d = String(new Date(r.occurred_at).getDate());
       categorySet.add(r.category);
-      byDay[day][r.category] = (byDay[day][r.category] ?? 0) + r.duration_minutes / 60;
+      byDay[d][r.category] = (byDay[d][r.category] ?? 0) + r.duration_minutes / 60;
     });
 
-    const data = days.map((day) => ({ day, ...byDay[day] }));
+    const data = Array.from({ length: totalDays }, (_, i) => ({
+      day: String(i + 1),
+      ...byDay[String(i + 1)],
+    }));
+
     return { chartData: data, categories: uniqueCategories(categorySet) };
-  }, [rows]);
+  }, [rows, year, month]);
 
-  const totalHours = useMemo(() => rows.reduce((sum, r) => sum + r.duration_minutes, 0) / 60, [rows]);
+  const totalHours = useMemo(
+    () => rows.reduce((sum, r) => sum + r.duration_minutes, 0) / 60,
+    [rows]
+  );
 
-  const weekLabel = isCurrentWeek ? "This week" : formatWeekRange(weekStart);
+  const monthLabel = `${MONTH_NAMES[month]} ${year}`;
 
   return (
     <Card>
@@ -109,25 +132,27 @@ export function WeeklyChart() {
         <div className="flex flex-col gap-0.5">
           <div className="flex items-center gap-1">
             <button
-              id="weekly-prev-btn"
-              onClick={() => setWeekOffset((o) => o - 1)}
+              id="monthly-prev-btn"
+              onClick={goBack}
               className="rounded-md p-1 text-muted transition-colors hover:bg-white/8 hover:text-paper"
-              aria-label="Previous week"
+              aria-label="Previous month"
             >
               <ChevronLeft size={15} />
             </button>
-            <CardTitle className="min-w-[190px] text-center text-sm sm:text-base">{weekLabel}</CardTitle>
+            <CardTitle className="min-w-[160px] text-center text-sm sm:text-base">
+              {monthLabel}
+            </CardTitle>
             <button
-              id="weekly-next-btn"
-              onClick={() => setWeekOffset((o) => o + 1)}
-              disabled={isCurrentWeek}
+              id="monthly-next-btn"
+              onClick={goForward}
+              disabled={isCurrentMonth}
               className="rounded-md p-1 text-muted transition-colors hover:bg-white/8 hover:text-paper disabled:cursor-not-allowed disabled:opacity-30"
-              aria-label="Next week"
+              aria-label="Next month"
             >
               <ChevronRight size={15} />
             </button>
           </div>
-          <CardDescription className="text-center">Focus hours by block category</CardDescription>
+          <CardDescription className="text-center">Daily focus hours by category</CardDescription>
         </div>
         <div className="text-right">
           <p className="font-display text-2xl font-semibold text-paper">{totalHours.toFixed(1)}h</p>
@@ -139,14 +164,21 @@ export function WeeklyChart() {
           <div className="flex h-56 items-center justify-center text-sm text-muted">Loading…</div>
         ) : totalHours === 0 ? (
           <div className="flex h-56 flex-col items-center justify-center gap-1 text-center text-sm text-muted">
-            <p>No completed focus sessions for this week.</p>
+            <p>No completed focus sessions for this month.</p>
             <p className="text-xs">Finish a focus segment and it will show up here.</p>
           </div>
         ) : (
           <ResponsiveContainer width="100%" height={240}>
-            <BarChart data={chartData}>
+            <BarChart data={chartData} barSize={6}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
-              <XAxis dataKey="day" stroke="#8B8A99" fontSize={12} tickLine={false} axisLine={false} />
+              <XAxis
+                dataKey="day"
+                stroke="#8B8A99"
+                fontSize={10}
+                tickLine={false}
+                axisLine={false}
+                interval={1}
+              />
               <YAxis stroke="#8B8A99" fontSize={12} tickLine={false} axisLine={false} width={28} />
               <Tooltip
                 cursor={{ fill: "rgba(255,255,255,0.04)" }}
@@ -157,6 +189,7 @@ export function WeeklyChart() {
                   fontSize: 12,
                 }}
                 formatter={(value) => [`${Number(value ?? 0).toFixed(2)}h`, ""]}
+                labelFormatter={(label) => `Day ${label}`}
               />
               <Legend wrapperStyle={{ fontSize: 12, color: "#8B8A99" }} />
               {categories.map((cat, i) => (
@@ -165,7 +198,7 @@ export function WeeklyChart() {
                   dataKey={cat}
                   stackId="focus"
                   fill={colorMap[cat] ?? "#8B8AFF"}
-                  radius={i === categories.length - 1 ? [4, 4, 0, 0] : undefined}
+                  radius={i === categories.length - 1 ? [3, 3, 0, 0] : undefined}
                 />
               ))}
             </BarChart>
