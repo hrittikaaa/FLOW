@@ -103,7 +103,7 @@ export function TimerControls({
         size="lg"
         className="h-16 w-16 rounded-full"
         onClick={onPlayPause}
-        disabled={!hasActiveBlock || disabled}
+        disabled={!hasActiveBlock}
         title={isRunning ? "Pause" : "Start"}
       >
         {isRunning ? <Pause className="h-6 w-6" /> : <Play className="h-6 w-6 translate-x-0.5" />}

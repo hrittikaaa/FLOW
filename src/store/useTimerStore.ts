@@ -162,6 +162,20 @@ function tick(blockId: string) {
       return;
     }
 
+    // Non-strict mode: pause between segments so the user decides when to start the next one.
+    // Strict mode: keep the clock running uninterrupted.
+    if (!block.strictMode) {
+      useBlocksStore.getState().patchRuntimeLocal(blockId, {
+        elapsedSecondsInSegment: 0,
+        status: "paused",
+        lastStartedAt: null,
+      });
+      useBlocksStore.getState().syncRuntime(blockId);
+      clearTick();
+      useTimerStore.setState({ isRunning: false, isStrictLocked: false });
+      return;
+    }
+
     // Re-anchor to the overflow time so the next tick doesn't re-compute
     // the same large elapsed and immediately complete the new segment too.
     setAnchor(remaining);

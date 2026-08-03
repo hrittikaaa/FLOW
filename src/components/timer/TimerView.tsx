@@ -128,10 +128,10 @@ export function TimerView({ blockId, onPickBlock, pausedBlockName, onDismissPaus
           )}
         </AnimatePresence>
 
-        {block.strictMode && running && (
+        {block.strictMode && block.status === "active" && (
           <div className="flex w-full items-center gap-2 rounded-lg border border-focus/30 bg-focus/10 px-3 py-2 text-xs text-focus">
             <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-            <span>Strict mode is on — editing is locked and you'll be warned before closing this tab.</span>
+            <span>Strict mode — skip/restart locked, segments auto-start, and you'll be warned before closing this tab.</span>
           </div>
         )}
 
@@ -184,6 +184,7 @@ export function TimerView({ blockId, onPickBlock, pausedBlockName, onDismissPaus
             onStop={() => stopAndReset(block.id)}
             onRestartSegment={restartSegment}
             onRestartBlock={() => restartBlock(block.id)}
+            disabled={block.strictMode && block.status === "active"}
           />
         )}
 
