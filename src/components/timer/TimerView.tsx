@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { motion } from "framer-motion";
-import { AlertTriangle, ListChecks } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { AlertTriangle, ListChecks, X } from "lucide-react";
 import { useBlocksStore } from "@/store/useBlocksStore";
 import { useTimerStore, getLiveElapsedSeconds } from "@/store/useTimerStore";
 import { useStrictModeGuard } from "@/hooks/useStrictModeGuard";
@@ -16,9 +16,12 @@ import { Button } from "@/components/ui/button";
 interface TimerViewProps {
   blockId: string | null;
   onPickBlock: () => void;
+  /** Name of a block that was auto-paused to make way for this one. */
+  pausedBlockName?: string | null;
+  onDismissPausedWarning?: () => void;
 }
 
-export function TimerView({ blockId, onPickBlock }: TimerViewProps) {
+export function TimerView({ blockId, onPickBlock, pausedBlockName, onDismissPausedWarning }: TimerViewProps) {
   const blocks = useBlocksStore((s) => s.blocks);
   const { activeBlockId, isRunning, start, pause, resume, skipSegment, stopAndReset, restartSegment, restartBlock } = useTimerStore();
 
@@ -26,6 +29,13 @@ export function TimerView({ blockId, onPickBlock }: TimerViewProps) {
   const running = isRunning && activeBlockId === blockId;
 
   const { strayed, clearStrayed } = useStrictModeGuard(running && Boolean(block?.strictMode));
+
+  // Auto-dismiss the "paused" warning after 6 s
+  useEffect(() => {
+    if (!pausedBlockName) return;
+    const t = setTimeout(() => onDismissPausedWarning?.(), 6000);
+    return () => clearTimeout(t);
+  }, [pausedBlockName, onDismissPausedWarning]);
 
   if (!block) {
     return (
@@ -92,6 +102,31 @@ export function TimerView({ blockId, onPickBlock }: TimerViewProps) {
     <div className="mx-auto grid max-w-4xl grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
       <Card className="flex flex-col items-center gap-6 p-8">
         <AmbientSoundPlayer sound={block.ambientSound} kind={running ? currentSegment?.kind ?? null : null} />
+
+        {/* Auto-paused warning — shown when this block replaced another running one */}
+        <AnimatePresence>
+          {pausedBlockName && (
+            <motion.div
+              key="paused-warning"
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.2 }}
+              className="flex w-full items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-300"
+            >
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
+              <span className="flex-1">
+                <span className="font-medium text-amber-200">"{pausedBlockName}"</span> is paused — you can resume it again from the Blocks tab.
+              </span>
+              <button
+                onClick={onDismissPausedWarning}
+                className="shrink-0 rounded p-0.5 hover:bg-white/10 transition-colors"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {block.strictMode && running && (
           <div className="flex w-full items-center gap-2 rounded-lg border border-focus/30 bg-focus/10 px-3 py-2 text-xs text-focus">

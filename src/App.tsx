@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useBlocksStore } from "@/store/useBlocksStore";
 import { useProfileStore } from "@/store/useProfileStore";
+import { useTimerStore } from "@/store/useTimerStore";
 import { AuthScreen } from "@/components/auth/AuthScreen";
 import { Header } from "@/components/layout/Header";
 import { BlocksDashboard } from "@/components/blocks/BlocksDashboard";
@@ -18,11 +19,14 @@ type ChartMode = "weekly" | "monthly";
 
 function App() {
   const { init, session, initializing } = useAuthStore();
-  const { fetchBlocks, subscribeRealtime } = useBlocksStore();
+  const { fetchBlocks, subscribeRealtime, blocks } = useBlocksStore();
   const fetchProfile = useProfileStore((s) => s.fetchProfile);
+  const { activeBlockId, isRunning, pause } = useTimerStore();
   const [view, setView] = useState<AppView>("dashboard");
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
   const [chartMode, setChartMode] = useState<ChartMode>("weekly");
+  /** Name of the block that was auto-paused when a new one was started. */
+  const [pausedBlockName, setPausedBlockName] = useState<string | null>(null);
 
   useEffect(() => {
     const unsubscribe = init();
@@ -50,6 +54,15 @@ function App() {
   }
 
   const handleSelectBlock = (block: FocusBlock) => {
+    // If a different block is actively running, pause it first and record its name
+    // so the TimerView can display a contextual warning to the user.
+    if (isRunning && activeBlockId && activeBlockId !== block.id) {
+      const running = blocks.find((b) => b.id === activeBlockId);
+      setPausedBlockName(running?.name ?? "Previous block");
+      pause();
+    } else {
+      setPausedBlockName(null);
+    }
     setSelectedBlockId(block.id);
     setView("timer");
   };
@@ -68,7 +81,12 @@ function App() {
           >
             {view === "dashboard" && <BlocksDashboard onSelectBlock={handleSelectBlock} />}
             {view === "timer" && (
-              <TimerView blockId={selectedBlockId} onPickBlock={() => setView("dashboard")} />
+              <TimerView
+                blockId={selectedBlockId}
+                onPickBlock={() => setView("dashboard")}
+                pausedBlockName={pausedBlockName}
+                onDismissPausedWarning={() => setPausedBlockName(null)}
+              />
             )}
             {view === "analytics" && (
               <div className="flex flex-col gap-6">
