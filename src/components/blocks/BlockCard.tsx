@@ -1,11 +1,16 @@
-import { CheckCircle2, MoreHorizontal, Pencil, Play, RotateCcw, Trash2 } from "lucide-react";
+import { CheckCircle2, MoreHorizontal, Pencil, Play, RotateCcw, Timer, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { CardContent, CardHeader } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { formatMinutesAsHours, getCategoryColor, getCategoryGradient } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import type { FocusBlock } from "@/types";
+
+// Matches the exact hex values used in BlockRing + TimelineStrip
+const FOCUS_COLOR = "#F2A65A";
+const REST_COLOR = "#6FD6C6";
+const segColor = (kind: string) => (kind === "focus" ? FOCUS_COLOR : REST_COLOR);
+const segColorDim = (kind: string) => (kind === "focus" ? "rgba(242,166,90,0.18)" : "rgba(111,214,198,0.18)");
 
 interface BlockCardProps {
   block: FocusBlock;
@@ -27,7 +32,15 @@ const statusStyles: Record<FocusBlock["status"], string> = {
 export function BlockCard({ block, onStart, onEdit, onDelete, onRestart, isDragging }: BlockCardProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const doneTasks = block.tasks.filter((t) => t.isDone).length;
-  const progressPct = Math.min(100, (block.completedMinutes / Math.max(1, block.totalMinutes)) * 100);
+
+  // Include progress within the current (possibly still-running) segment so the
+  // bar keeps advancing live even while this card is off-screen on another tab —
+  // block.elapsedSecondsInSegment is ticked every second by the timer store
+  // regardless of which view is mounted.
+  const currentSegment = block.segments[block.currentSegmentIndex];
+  const liveCompletedMinutes = block.completedMinutes + block.elapsedSecondsInSegment / 60;
+  const progressPct = Math.min(100, (liveCompletedMinutes / Math.max(1, block.totalMinutes)) * 100);
+  const totalSegmentMinutes = block.segments.reduce((s, seg) => s + seg.durationMinutes, 0) || 1;
   const isLocked = block.strictMode && block.status === "active";
   const categoryColor = getCategoryColor(block.category);
   const categoryGradient = getCategoryGradient(block.category);
@@ -119,11 +132,45 @@ export function BlockCard({ block, onStart, onEdit, onDelete, onRestart, isDragg
           <div className="space-y-1.5">
             <div className="flex items-center justify-between text-xs text-muted">
               <span>
-                {formatMinutesAsHours(block.completedMinutes)} / {formatMinutesAsHours(block.totalMinutes)}
+                {formatMinutesAsHours(Math.floor(liveCompletedMinutes))} / {formatMinutesAsHours(block.totalMinutes)}
               </span>
               <span>{Math.round(progressPct)}%</span>
             </div>
-            <Progress value={progressPct} />
+            {/* Segmented progress bar — mirrors TimelineStrip colors & proportions */}
+            <div className="flex h-2 w-full overflow-hidden rounded-full gap-[2px]">
+              {block.segments.map((seg, i) => {
+                const isPast = i < block.currentSegmentIndex || seg.isCompleted;
+                const isCurrent = i === block.currentSegmentIndex && !seg.isCompleted;
+                const fraction = isCurrent
+                  ? Math.min(1, block.elapsedSecondsInSegment / (seg.durationMinutes * 60))
+                  : 0;
+                const widthPct = (seg.durationMinutes / totalSegmentMinutes) * 100;
+
+                return (
+                  <div
+                    key={seg.id}
+                    className="relative overflow-hidden rounded-full first:rounded-l-full last:rounded-r-full"
+                    style={{ width: `${widthPct}%`, flexShrink: 0, backgroundColor: segColorDim(seg.kind) }}
+                  >
+                    {/* Completed: full bright fill */}
+                    {isPast && (
+                      <div className="absolute inset-0" style={{ backgroundColor: segColor(seg.kind) }} />
+                    )}
+                    {/* Current: live partial fill with glow */}
+                    {isCurrent && fraction > 0 && (
+                      <div
+                        className="absolute inset-y-0 left-0 transition-all duration-1000 ease-linear"
+                        style={{
+                          width: `${fraction * 100}%`,
+                          backgroundColor: segColor(seg.kind),
+                          boxShadow: `0 0 6px 1px ${segColor(seg.kind)}99`,
+                        }}
+                      />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
           {block.tasks.length > 0 && (
@@ -141,8 +188,14 @@ export function BlockCard({ block, onStart, onEdit, onDelete, onRestart, isDragg
             className="w-full"
             onClick={() => onStart(block)}
           >
-            <Play className="h-3.5 w-3.5" />
-            {block.status === "active" ? "Resume in timer" : block.status === "completed" ? "View" : "Start"}
+            {block.status === "active" ? <Timer className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
+            {block.status === "active"
+              ? "Running — open timer"
+              : block.status === "paused"
+              ? "Resume in timer"
+              : block.status === "completed"
+              ? "View"
+              : "Start"}
           </Button>
         </CardContent>
       </div>

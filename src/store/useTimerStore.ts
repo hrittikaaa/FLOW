@@ -161,6 +161,10 @@ function tick(blockId: string) {
       useTimerStore.setState({ isRunning: false, activeBlockId: null, isStrictLocked: false });
       return;
     }
+
+    // Re-anchor to the overflow time so the next tick doesn't re-compute
+    // the same large elapsed and immediately complete the new segment too.
+    setAnchor(remaining);
   }
 
   // Write elapsed into state (for Supabase sync + resuming after page reload)

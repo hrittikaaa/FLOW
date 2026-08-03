@@ -19,14 +19,18 @@ function isSupported(): boolean {
 /** Fire a desktop notification. Safe to call even if permission is not yet granted — it will silently no-op. */
 export function fireNotification(title: string, opts?: NotificationOptions): void {
   if (!isSupported() || Notification.permission !== "granted") return;
-  const n = new Notification(title, {
-    icon: "/favicon.ico",
-    badge: "/favicon.ico",
-    silent: false,
-    ...opts,
-  });
-  // Auto-close after 6 s so it doesn't pile up.
-  setTimeout(() => n.close(), 6000);
+  try {
+    const n = new Notification(title, {
+      icon: "/favicon.ico",
+      badge: "/favicon.ico",
+      silent: false,
+      ...opts,
+    });
+    // Auto-close after 6 s so it doesn't pile up.
+    setTimeout(() => n.close(), 6000);
+  } catch (err) {
+    console.error("[useNotifications] failed to show notification:", err);
+  }
 }
 
 interface UseNotificationsReturn {
