@@ -151,9 +151,12 @@ export function WeeklyChart() {
               <Tooltip
                 cursor={{ fill: "rgba(255,255,255,0.04)" }}
                 contentStyle={{
-                  background: "#1B1B29",
-                  border: "1px solid rgba(255,255,255,0.08)",
+                  background: "rgba(27,27,41,0.75)",
+                  backdropFilter: "blur(16px) saturate(150%)",
+                  WebkitBackdropFilter: "blur(16px) saturate(150%)",
+                  border: "1px solid rgba(255,255,255,0.1)",
                   borderRadius: 8,
+                  boxShadow: "0 12px 32px -14px rgba(0,0,0,0.5)",
                   fontSize: 12,
                 }}
                 formatter={(value) => [`${Number(value ?? 0).toFixed(2)}h`, ""]}

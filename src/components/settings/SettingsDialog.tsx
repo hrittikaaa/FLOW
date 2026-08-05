@@ -108,7 +108,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
           </div>
 
           {/* ── Desktop Notifications ───────────────────────────────────── */}
-          <div className="rounded-lg border border-white/10 bg-white/5 px-4 py-3 space-y-2">
+          <div className="rounded-lg border border-white/10 bg-white/5 px-4 py-3 space-y-2 backdrop-blur-sm">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2 min-w-0">
                 <span className="text-base leading-none">🔔</span>

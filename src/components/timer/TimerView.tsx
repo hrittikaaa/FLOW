@@ -112,7 +112,7 @@ export function TimerView({ blockId, onPickBlock, pausedBlockName, onDismissPaus
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.2 }}
-              className="flex w-full items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-300"
+              className="flex w-full items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-300 backdrop-blur-sm"
             >
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
               <span className="flex-1">
@@ -129,7 +129,7 @@ export function TimerView({ blockId, onPickBlock, pausedBlockName, onDismissPaus
         </AnimatePresence>
 
         {block.strictMode && block.status === "active" && (
-          <div className="flex w-full items-center gap-2 rounded-lg border border-focus/30 bg-focus/10 px-3 py-2 text-xs text-focus">
+          <div className="flex w-full items-center gap-2 rounded-lg border border-focus/30 bg-focus/10 px-3 py-2 text-xs text-focus backdrop-blur-sm">
             <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
             <span>Strict mode — skip/restart locked, segments auto-start, and you'll be warned before closing this tab.</span>
           </div>
@@ -139,7 +139,7 @@ export function TimerView({ blockId, onPickBlock, pausedBlockName, onDismissPaus
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="w-full rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-center text-xs text-danger"
+            className="w-full rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-center text-xs text-danger backdrop-blur-sm"
           >
             Welcome back — your focus block is still running.{" "}
             <button onClick={clearStrayed} className="underline underline-offset-2">
@@ -160,7 +160,7 @@ export function TimerView({ blockId, onPickBlock, pausedBlockName, onDismissPaus
               <span className="mt-1 text-sm text-muted">{block.name}</span>
               <button
                 onClick={() => restartBlock(block.id)}
-                className="mt-2 flex items-center gap-1.5 rounded-full border border-glass-border bg-white/5 px-4 py-1.5 text-xs text-paper/80 hover:bg-white/10 hover:text-paper transition-colors"
+                className="mt-2 flex items-center gap-1.5 rounded-full border border-glass-border bg-white/5 px-4 py-1.5 text-xs text-paper/80 backdrop-blur-sm hover:bg-white/10 hover:text-paper transition-colors"
               >
                 <span>↺</span> Restart block
               </button>

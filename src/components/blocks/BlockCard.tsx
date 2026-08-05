@@ -59,8 +59,8 @@ export function BlockCard({ block, onStart, onEdit, onDelete, onRestart, isDragg
           : `0 0 14px -6px ${categoryColor}55, 0 4px 16px rgba(0,0,0,0.3)`,
       }}
     >
-      {/* Inner card — solid dark fill so gradient shows only as the border ring */}
-      <div className="rounded-[calc(1.25rem-1.5px)] bg-[#1B1B29] backdrop-blur-xl overflow-hidden h-full">
+      {/* Inner card — translucent glass fill so the gradient ring glows through, clipped so the gradient shows only as the border */}
+      <div className="rounded-[calc(1.25rem-1.5px)] bg-ink-raised/70 backdrop-blur-xl backdrop-saturate-150 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden h-full">
         <CardHeader className="pb-2">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
@@ -90,7 +90,7 @@ export function BlockCard({ block, onStart, onEdit, onDelete, onRestart, isDragg
               </button>
               {menuOpen && (
                 <div
-                  className="absolute right-0 top-9 z-10 w-36 overflow-hidden rounded-lg border border-glass-border bg-ink-raised shadow-glass"
+                  className="glass-panel-strong absolute right-0 top-9 z-10 w-36 overflow-hidden rounded-lg"
                   onMouseLeave={() => setMenuOpen(false)}
                 >
                   <button

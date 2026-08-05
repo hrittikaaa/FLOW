@@ -15,7 +15,7 @@ export function Header({ view, onViewChange }: HeaderProps) {
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-30 border-b border-glass-border bg-ink/80 backdrop-blur-xl">
+    <header className="sticky top-0 z-30 border-b border-glass-border bg-ink/55 backdrop-blur-2xl backdrop-saturate-150 shadow-glass-sm">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
         <div className="flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-focus/15 text-focus">

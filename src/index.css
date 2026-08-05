@@ -7,10 +7,7 @@
     @apply border-glass-border;
   }
   body {
-    background-image:
-      radial-gradient(circle at 15% 10%, rgba(242, 166, 90, 0.06), transparent 40%),
-      radial-gradient(circle at 85% 90%, rgba(111, 214, 198, 0.06), transparent 40%);
-    background-attachment: fixed;
+    background-color: theme("colors.ink.DEFAULT");
   }
   ::selection {
     background: rgba(242, 166, 90, 0.25);
@@ -29,8 +26,28 @@
 }
 
 @layer components {
+  /*
+   * Liquid glass surface: a translucent fill that lets the drifting ambient
+   * blobs (LiquidBackground) show through, a diagonal sheen standing in for a
+   * specular highlight, and a shadow token that carries both the outer
+   * ambient drop and the inner rim-light that sells the "pane of glass" read.
+   */
   .glass-panel {
-    @apply bg-glass-fill backdrop-blur-xl border border-glass-border rounded-xl2 shadow-glass;
+    @apply relative bg-glass-fill backdrop-blur-2xl backdrop-saturate-150 border border-glass-border rounded-xl2 shadow-glass;
+    background-image: linear-gradient(160deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0) 42%);
+  }
+  /* Denser fill for surfaces that must stay legible over busy content (dialogs, menus). */
+  .glass-panel-strong {
+    @apply relative bg-glass-strong backdrop-blur-2xl backdrop-saturate-150 border border-glass-border rounded-xl2 shadow-glass;
+    background-image: linear-gradient(160deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0) 42%);
+  }
+  /* Lighter-touch pill used for tab bars and segmented toggles. */
+  .glass-pill {
+    @apply relative bg-glass-fill backdrop-blur-xl backdrop-saturate-150 border border-glass-border rounded-full shadow-glass-sm;
+  }
+  /* Recessed field treatment for text inputs, selects and textareas. */
+  .glass-field {
+    @apply bg-white/[0.05] backdrop-blur-sm border border-glass-border shadow-glass-inset;
   }
   .tabular {
     font-variant-numeric: tabular-nums;

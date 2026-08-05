@@ -84,7 +84,7 @@ export function TaskList({ block, otherBlocks, disabled }: TaskListProps) {
                       rolloverTask(task.id, b.id);
                       setRolloverOpenFor(null);
                     }}
-                    className="rounded-full border border-glass-border bg-white/[0.03] px-2.5 py-1 text-xs text-paper/80 hover:border-rest/50 hover:text-rest"
+                    className="rounded-full border border-glass-border bg-white/[0.03] px-2.5 py-1 text-xs text-paper/80 backdrop-blur-sm hover:border-rest/50 hover:text-rest"
                   >
                     → {b.name}
                   </button>

@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from "react";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { Plus } from "lucide-react";
 import { useBlocksStore } from "@/store/useBlocksStore";
 import { BlockCard } from "@/components/blocks/BlockCard";
@@ -14,12 +14,28 @@ interface BlocksDashboardProps {
 
 type FilterTab = "all" | "active" | "planned" | "completed";
 
+const FILTER_ORDER: FilterTab[] = ["all", "active", "planned", "completed"];
+
+/** Slides the incoming filter's results in from the direction it was navigated toward. */
+const slideVariants = {
+  enter: (direction: number) => ({ opacity: 0, x: direction * 24 }),
+  center: { opacity: 1, x: 0 },
+  exit: (direction: number) => ({ opacity: 0, x: direction * -24 }),
+};
+const slideTransition = { duration: 0.3, ease: [0.22, 1, 0.36, 1] as const };
+
 export function BlocksDashboard({ onSelectBlock }: BlocksDashboardProps) {
   const { blocks, deleteBlock, resetBlock } = useBlocksStore();
   const [formOpen, setFormOpen] = useState(false);
   const [editingBlock, setEditingBlock] = useState<FocusBlock | undefined>(undefined);
   const [tab, setTab] = useState<FilterTab>("all");
+  const [tabDirection, setTabDirection] = useState(0);
   const [draggedId, setDraggedId] = useState<string | null>(null);
+
+  const handleTabChange = (next: FilterTab) => {
+    setTabDirection(FILTER_ORDER.indexOf(next) > FILTER_ORDER.indexOf(tab) ? 1 : -1);
+    setTab(next);
+  };
 
   const baseFiltered = useMemo(() => {
     if (tab === "all") return blocks.filter((b) => b.status !== "archived");
@@ -76,7 +92,7 @@ export function BlocksDashboard({ onSelectBlock }: BlocksDashboardProps) {
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <Tabs value={tab} onValueChange={(v) => setTab(v as FilterTab)}>
+        <Tabs value={tab} onValueChange={(v) => handleTabChange(v as FilterTab)}>
           <TabsList>
             <TabsTrigger value="all">All</TabsTrigger>
             <TabsTrigger value="active">Active</TabsTrigger>
@@ -95,56 +111,70 @@ export function BlocksDashboard({ onSelectBlock }: BlocksDashboardProps) {
         </Button>
       </div>
 
-      {filtered.length === 0 ? (
-        <div className="glass-panel flex flex-col items-center justify-center gap-2 px-6 py-16 text-center">
-          <p className="font-display text-lg text-paper">No focus blocks yet</p>
-          <p className="max-w-xs text-sm text-muted">
-            Create one to set a time goal — Flow will lay out the focus and break cycles for you.
-          </p>
-          <Button className="mt-2" onClick={() => setFormOpen(true)}>
-            <Plus className="h-4 w-4" /> Create your first block
-          </Button>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((block) => {
-            const isDragging = draggedId === block.id;
-            return (
-              <motion.div
-                key={block.id}
-                layout
-                layoutId={block.id}
-                animate={{
-                  opacity: isDragging ? 0.45 : 1,
-                  scale: isDragging ? 1.02 : 1,
-                }}
-                transition={{ duration: 0.15 }}
-                style={{ cursor: isDragging ? "grabbing" : "grab" }}
-                draggable
-                onDragStart={() => handleDragStart(block.id)}
-                onDragEnd={handleDragEnd}
-                onDragEnter={(e) => {
-                  e.preventDefault();
-                  handleDragEnter(block.id);
-                }}
-                onDragOver={(e) => e.preventDefault()}
-              >
-                <BlockCard
-                  block={block}
-                  onStart={onSelectBlock}
-                  onEdit={(b) => {
-                    setEditingBlock(b);
-                    setFormOpen(true);
-                  }}
-                  onDelete={(b) => deleteBlock(b.id)}
-                  onRestart={(b) => resetBlock(b.id)}
-                  isDragging={isDragging}
-                />
-              </motion.div>
-            );
-          })}
-        </div>
-      )}
+      <div className="overflow-x-clip">
+        <AnimatePresence mode="wait" custom={tabDirection}>
+          <motion.div
+            key={tab}
+            custom={tabDirection}
+            variants={slideVariants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={slideTransition}
+          >
+            {filtered.length === 0 ? (
+              <div className="glass-panel flex flex-col items-center justify-center gap-2 px-6 py-16 text-center">
+                <p className="font-display text-lg text-paper">No focus blocks yet</p>
+                <p className="max-w-xs text-sm text-muted">
+                  Create one to set a time goal — Flow will lay out the focus and break cycles for you.
+                </p>
+                <Button className="mt-2" onClick={() => setFormOpen(true)}>
+                  <Plus className="h-4 w-4" /> Create your first block
+                </Button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {filtered.map((block) => {
+                  const isDragging = draggedId === block.id;
+                  return (
+                    <motion.div
+                      key={block.id}
+                      layout
+                      layoutId={block.id}
+                      animate={{
+                        opacity: isDragging ? 0.45 : 1,
+                        scale: isDragging ? 1.02 : 1,
+                      }}
+                      transition={{ duration: 0.15 }}
+                      style={{ cursor: isDragging ? "grabbing" : "grab" }}
+                      draggable
+                      onDragStart={() => handleDragStart(block.id)}
+                      onDragEnd={handleDragEnd}
+                      onDragEnter={(e) => {
+                        e.preventDefault();
+                        handleDragEnter(block.id);
+                      }}
+                      onDragOver={(e) => e.preventDefault()}
+                    >
+                      <BlockCard
+                        block={block}
+                        onStart={onSelectBlock}
+                        onEdit={(b) => {
+                          setEditingBlock(b);
+                          setFormOpen(true);
+                        }}
+                        onDelete={(b) => deleteBlock(b.id)}
+                        onRestart={(b) => resetBlock(b.id)}
+                        isDragging={isDragging}
+                      />
+                    </motion.div>
+                  );
+                })}
+              </div>
+            )}
+          </motion.div>
+        </AnimatePresence>
+      </div>
 
       <BlockFormDialog open={formOpen} onOpenChange={setFormOpen} existingBlock={editingBlock} allBlocks={blocks} />
     </div>

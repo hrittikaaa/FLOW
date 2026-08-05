@@ -132,7 +132,7 @@ export function BlockFormDialog({ open, onOpenChange, existingBlock, allBlocks }
                 id="category"
                 value={draft.category}
                 onChange={(e) => setDraft((d) => ({ ...d, category: e.target.value }))}
-                className="h-10 w-full rounded-lg border border-glass-border bg-white/[0.03] px-3 text-sm text-paper focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus/50"
+                className="glass-field h-10 w-full rounded-lg px-3 text-sm text-paper focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus/50"
               >
                 {CATEGORIES.map((c) => (
                   <option key={c} value={c} className="bg-ink-raised">
@@ -147,7 +147,7 @@ export function BlockFormDialog({ open, onOpenChange, existingBlock, allBlocks }
                 id="ambient"
                 value={draft.ambientSound}
                 onChange={(e) => setDraft((d) => ({ ...d, ambientSound: e.target.value as AmbientSound }))}
-                className="h-10 w-full rounded-lg border border-glass-border bg-white/[0.03] px-3 text-sm text-paper focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus/50"
+                className="glass-field h-10 w-full rounded-lg px-3 text-sm text-paper focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus/50"
               >
                 {AMBIENT_OPTIONS.map((o) => (
                   <option key={o.value} value={o.value} className="bg-ink-raised">
@@ -229,7 +229,7 @@ export function BlockFormDialog({ open, onOpenChange, existingBlock, allBlocks }
             </div>
           </div>
 
-          <div className="flex items-center justify-between rounded-lg border border-glass-border bg-white/[0.02] px-4 py-3">
+          <div className="flex items-center justify-between rounded-lg border border-glass-border bg-white/[0.02] px-4 py-3 backdrop-blur-sm">
             <div>
               <p className="text-sm font-medium text-paper">Strict mode</p>
               <p className="text-xs text-muted">Locks editing and warns before you leave the tab once started.</p>
@@ -240,7 +240,7 @@ export function BlockFormDialog({ open, onOpenChange, existingBlock, allBlocks }
             />
           </div>
 
-          <div className="space-y-2 rounded-lg border border-glass-border bg-white/[0.02] p-4">
+          <div className="space-y-2 rounded-lg border border-glass-border bg-white/[0.02] p-4 backdrop-blur-sm">
             <Label>Timeline preview</Label>
             <TimelineStrip segments={previewPlan} compact />
           </div>

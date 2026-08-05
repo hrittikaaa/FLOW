@@ -53,7 +53,7 @@ export function TimerControls({
         </Button>
 
         {menuOpen && (
-          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-20 w-48 overflow-hidden rounded-xl border border-glass-border bg-ink-raised shadow-glass">
+          <div className="glass-panel-strong absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-20 w-48 overflow-hidden rounded-xl">
             <div className="px-3 py-1.5 text-[10px] font-medium uppercase tracking-widest text-muted border-b border-glass-border">
               Actions
             </div>
