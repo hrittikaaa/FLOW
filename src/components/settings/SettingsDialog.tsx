@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Slider } from "@/components/ui/slider";
+import { SliderWithInput } from "@/components/ui/slider-input";
 import { useProfileStore } from "@/store/useProfileStore";
 import { useNotifications } from "@/hooks/useNotifications";
 
@@ -79,32 +79,20 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
 
         <div className="space-y-5">
           <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <Label>Focus length</Label>
-              <span className="tabular font-mono text-sm text-focus">{focus}m</span>
-            </div>
-            <Slider min={5} max={90} step={5} value={[focus]} onValueChange={([v]) => setFocus(v)} />
+            <Label>Focus length</Label>
+            <SliderWithInput min={5} max={90} step={5} value={focus} onValueChange={setFocus} />
           </div>
           <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <Label>Break length</Label>
-              <span className="tabular font-mono text-sm text-rest">{brk}m</span>
-            </div>
-            <Slider min={0} max={30} step={5} value={[brk]} onValueChange={([v]) => setBrk(v)} />
+            <Label>Break length</Label>
+            <SliderWithInput min={0} max={30} step={5} value={brk} onValueChange={setBrk} />
           </div>
           <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <Label>Long break length</Label>
-              <span className="tabular font-mono text-sm text-rest">{longBrk}m</span>
-            </div>
-            <Slider min={0} max={45} step={5} value={[longBrk]} onValueChange={([v]) => setLongBrk(v)} />
+            <Label>Long break length</Label>
+            <SliderWithInput min={0} max={45} step={5} value={longBrk} onValueChange={setLongBrk} />
           </div>
           <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <Label>Sessions per long break</Label>
-              <span className="tabular font-mono text-sm text-paper">{sessions}</span>
-            </div>
-            <Slider min={2} max={8} step={1} value={[sessions]} onValueChange={([v]) => setSessions(v)} />
+            <Label>Sessions per long break</Label>
+            <SliderWithInput min={2} max={8} step={1} unit="" value={sessions} onValueChange={setSessions} />
           </div>
 
           {/* ── Desktop Notifications ───────────────────────────────────── */}

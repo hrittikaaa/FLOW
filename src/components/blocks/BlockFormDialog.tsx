@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Slider } from "@/components/ui/slider";
+import { SliderWithInput } from "@/components/ui/slider-input";
 import { TimelineStrip } from "@/components/timer/TimelineStrip";
 import { TaskList } from "@/components/blocks/TaskList";
 import { useBlocksStore } from "@/store/useBlocksStore";
@@ -165,66 +165,55 @@ export function BlockFormDialog({ open, onOpenChange, existingBlock, allBlocks }
                 {Math.floor(draft.totalMinutes / 60)}h {draft.totalMinutes % 60}m
               </span>
             </div>
-            <Slider
+            <SliderWithInput
               min={15}
               max={480}
               step={15}
-              value={[draft.totalMinutes]}
-              onValueChange={([v]) => setDraft((d) => ({ ...d, totalMinutes: v }))}
+              value={draft.totalMinutes}
+              onValueChange={(v) => setDraft((d) => ({ ...d, totalMinutes: v }))}
             />
           </div>
 
           <div className="grid grid-cols-2 gap-5">
             <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <Label>Focus length</Label>
-                <span className="tabular font-mono text-sm text-focus">{draft.focusMinutes}m</span>
-              </div>
-              <Slider
+              <Label>Focus length</Label>
+              <SliderWithInput
                 min={5}
                 max={90}
                 step={5}
-                value={[draft.focusMinutes]}
-                onValueChange={([v]) => setDraft((d) => ({ ...d, focusMinutes: v }))}
+                value={draft.focusMinutes}
+                onValueChange={(v) => setDraft((d) => ({ ...d, focusMinutes: v }))}
               />
             </div>
             <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <Label>Break length</Label>
-                <span className="tabular font-mono text-sm text-rest">{draft.breakMinutes}m</span>
-              </div>
-              <Slider
+              <Label>Break length</Label>
+              <SliderWithInput
                 min={0}
                 max={30}
                 step={5}
-                value={[draft.breakMinutes]}
-                onValueChange={([v]) => setDraft((d) => ({ ...d, breakMinutes: v }))}
+                value={draft.breakMinutes}
+                onValueChange={(v) => setDraft((d) => ({ ...d, breakMinutes: v }))}
               />
             </div>
             <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <Label>Long break</Label>
-                <span className="tabular font-mono text-sm text-rest">{draft.longBreakMinutes}m</span>
-              </div>
-              <Slider
+              <Label>Long break</Label>
+              <SliderWithInput
                 min={0}
                 max={45}
                 step={5}
-                value={[draft.longBreakMinutes]}
-                onValueChange={([v]) => setDraft((d) => ({ ...d, longBreakMinutes: v }))}
+                value={draft.longBreakMinutes}
+                onValueChange={(v) => setDraft((d) => ({ ...d, longBreakMinutes: v }))}
               />
             </div>
             <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <Label>Sessions per long break</Label>
-                <span className="tabular font-mono text-sm text-paper">{draft.sessionsBeforeLongBreak}</span>
-              </div>
-              <Slider
+              <Label>Sessions per long break</Label>
+              <SliderWithInput
                 min={2}
                 max={8}
                 step={1}
-                value={[draft.sessionsBeforeLongBreak]}
-                onValueChange={([v]) => setDraft((d) => ({ ...d, sessionsBeforeLongBreak: v }))}
+                unit=""
+                value={draft.sessionsBeforeLongBreak}
+                onValueChange={(v) => setDraft((d) => ({ ...d, sessionsBeforeLongBreak: v }))}
               />
             </div>
           </div>
