@@ -33,7 +33,12 @@ function formatWeekRange(ws: Date) {
   return `${ws.toLocaleDateString(undefined, opts)} – ${we.toLocaleDateString(undefined, opts)}`;
 }
 
-export function WeeklyChart() {
+interface WeeklyChartProps {
+  /** Bump this to force a refetch, e.g. after a manual entry is logged. */
+  refreshKey?: number;
+}
+
+export function WeeklyChart({ refreshKey = 0 }: WeeklyChartProps) {
   const [weekOffset, setWeekOffset] = useState(0);
   const [rows, setRows] = useState<SessionRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,7 +57,7 @@ export function WeeklyChart() {
         setColorMap(buildColorMap(all));
       }
     })();
-  }, []);
+  }, [refreshKey]);
 
   const weekStart = useMemo(() => {
     const base = startOfWeek(new Date());
@@ -81,7 +86,7 @@ export function WeeklyChart() {
     return () => {
       active = false;
     };
-  }, [weekStart, weekEnd]);
+  }, [weekStart, weekEnd, refreshKey]);
 
   const { chartData, categories } = useMemo(() => {
     const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];

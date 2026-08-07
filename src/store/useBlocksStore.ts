@@ -97,6 +97,9 @@ interface BlocksState {
   syncRuntime: (id: string) => Promise<void>;
   markSegmentComplete: (blockId: string, segmentId: string) => Promise<void>;
   logSession: (block: FocusBlock, kind: SegmentKind, durationMinutes: number) => Promise<void>;
+  /** Logs a focus session that wasn't tracked live through a block/timer — e.g. offline
+   *  focus time the user wants reflected in analytics. */
+  logManualSession: (params: { category: string; durationMinutes: number; occurredAt: string; note?: string }) => Promise<boolean>;
   /** Resets a block fully back to its initial state: marks all segments incomplete in the DB
    *  and zeroes all runtime counters so it can be run again from scratch. */
   resetBlock: (id: string) => Promise<void>;
@@ -404,6 +407,21 @@ export const useBlocksStore = create<BlocksState>((set, get) => ({
       kind,
       duration_minutes: durationMinutes,
     });
+  },
+
+  logManualSession: async ({ category, durationMinutes, occurredAt, note }) => {
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData.user || durationMinutes <= 0) return false;
+    const { error } = await supabase.from("focus_sessions").insert({
+      user_id: userData.user.id,
+      block_id: null,
+      block_name: note?.trim() || "Manual entry",
+      category,
+      kind: "focus",
+      duration_minutes: Math.round(durationMinutes),
+      occurred_at: occurredAt,
+    });
+    return !error;
   },
 
   resetBlock: async (id) => {

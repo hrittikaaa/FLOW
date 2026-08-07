@@ -31,7 +31,12 @@ function daysInMonth(year: number, month: number) {
   return new Date(year, month + 1, 0).getDate();
 }
 
-export function MonthlyChart() {
+interface MonthlyChartProps {
+  /** Bump this to force a refetch, e.g. after a manual entry is logged. */
+  refreshKey?: number;
+}
+
+export function MonthlyChart({ refreshKey = 0 }: MonthlyChartProps) {
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth()); // 0-indexed
@@ -53,7 +58,7 @@ export function MonthlyChart() {
         setColorMap(buildColorMap(all));
       }
     })();
-  }, []);
+  }, [refreshKey]);
 
   const isCurrentMonth = year === now.getFullYear() && month === now.getMonth();
 
@@ -96,7 +101,7 @@ export function MonthlyChart() {
     return () => {
       active = false;
     };
-  }, [year, month]);
+  }, [year, month, refreshKey]);
 
   const { chartData, categories } = useMemo(() => {
     const totalDays = daysInMonth(year, month);

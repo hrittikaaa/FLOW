@@ -138,6 +138,21 @@ create table if not exists public.focus_sessions (
 create index if not exists idx_focus_sessions_user_id on public.focus_sessions (user_id, occurred_at desc);
 
 -- ---------------------------------------------------------
+-- 6. categories
+--    User-defined focus block categories, in addition to the
+--    built-in common ones offered client-side.
+-- ---------------------------------------------------------
+create table if not exists public.categories (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users (id) on delete cascade,
+  name text not null,
+  created_at timestamptz not null default now(),
+  unique (user_id, name)
+);
+
+create index if not exists idx_categories_user_id on public.categories (user_id);
+
+-- ---------------------------------------------------------
 -- updated_at auto-touch trigger (generic, reused by tables that have the column)
 -- ---------------------------------------------------------
 create or replace function public.touch_updated_at()
@@ -169,6 +184,7 @@ alter table public.focus_blocks enable row level security;
 alter table public.block_segments enable row level security;
 alter table public.tasks enable row level security;
 alter table public.focus_sessions enable row level security;
+alter table public.categories enable row level security;
 
 -- profiles: a user can only read/update their own row
 create policy "profiles_select_own" on public.profiles
@@ -230,6 +246,16 @@ create policy "focus_sessions_select_own" on public.focus_sessions
 
 create policy "focus_sessions_insert_own" on public.focus_sessions
   for insert with check (auth.uid() = user_id);
+
+-- categories: full CRUD, own rows only
+create policy "categories_select_own" on public.categories
+  for select using (auth.uid() = user_id);
+
+create policy "categories_insert_own" on public.categories
+  for insert with check (auth.uid() = user_id);
+
+create policy "categories_delete_own" on public.categories
+  for delete using (auth.uid() = user_id);
 
 -- =========================================================
 -- Realtime (optional but recommended for cross-device sync)

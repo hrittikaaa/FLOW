@@ -11,7 +11,10 @@ import { BlocksDashboard } from "@/components/blocks/BlocksDashboard";
 import { TimerView } from "@/components/timer/TimerView";
 import { WeeklyChart } from "@/components/analytics/WeeklyChart";
 import { MonthlyChart } from "@/components/analytics/MonthlyChart";
+import { ManualEntryDialog } from "@/components/analytics/ManualEntryDialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
 import type { FocusBlock } from "@/types";
 import { Analytics } from "@vercel/analytics/react";
 
@@ -40,6 +43,8 @@ function App() {
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
   const [chartMode, setChartMode] = useState<ChartMode>("weekly");
   const [chartDirection, setChartDirection] = useState(0);
+  const [manualEntryOpen, setManualEntryOpen] = useState(false);
+  const [analyticsRefreshKey, setAnalyticsRefreshKey] = useState(0);
   /** Name of the block that was auto-paused when a new one was started. */
   const [pausedBlockName, setPausedBlockName] = useState<string | null>(null);
 
@@ -125,7 +130,7 @@ function App() {
             {view === "analytics" && (
               <div className="flex flex-col gap-6">
                 {/* Toggle */}
-                <div className="flex justify-center">
+                <div className="relative flex justify-center">
                   <Tabs value={chartMode} onValueChange={(v) => handleChartModeChange(v as ChartMode)}>
                     <TabsList>
                       {(["weekly", "monthly"] as ChartMode[]).map((mode) => (
@@ -135,6 +140,15 @@ function App() {
                       ))}
                     </TabsList>
                   </Tabs>
+                  <Button
+                    id="log-focus-time-btn"
+                    size="sm"
+                    variant="primary"
+                    onClick={() => setManualEntryOpen(true)}
+                    className="absolute right-0 top-1/2 -translate-y-1/2 gap-1"
+                  >
+                    <Plus size={14} /> Log time
+                  </Button>
                 </div>
 
                 {/* Chart panel */}
@@ -149,7 +163,11 @@ function App() {
                       exit="exit"
                       transition={slideTransition}
                     >
-                      {chartMode === "weekly" ? <WeeklyChart /> : <MonthlyChart />}
+                      {chartMode === "weekly" ? (
+                        <WeeklyChart refreshKey={analyticsRefreshKey} />
+                      ) : (
+                        <MonthlyChart refreshKey={analyticsRefreshKey} />
+                      )}
                     </motion.div>
                   </AnimatePresence>
                 </div>
@@ -158,6 +176,11 @@ function App() {
           </motion.div>
         </AnimatePresence>
       </main>
+      <ManualEntryDialog
+        open={manualEntryOpen}
+        onOpenChange={setManualEntryOpen}
+        onLogged={() => setAnalyticsRefreshKey((k) => k + 1)}
+      />
       <Analytics />
     </div>
   );
