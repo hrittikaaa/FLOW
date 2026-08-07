@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { AlertTriangle, ListChecks, X } from "lucide-react";
+import { AlertTriangle, ListChecks, Pencil, X } from "lucide-react";
 import { useBlocksStore } from "@/store/useBlocksStore";
 import { useTimerStore, getLiveElapsedSeconds } from "@/store/useTimerStore";
 import { useStrictModeGuard } from "@/hooks/useStrictModeGuard";
@@ -10,6 +10,7 @@ import { TimerControls } from "@/components/timer/TimerControls";
 import { TimelineStrip } from "@/components/timer/TimelineStrip";
 import { AmbientSoundPlayer } from "@/components/timer/AmbientSoundPlayer";
 import { TaskList } from "@/components/blocks/TaskList";
+import { BlockFormDialog } from "@/components/blocks/BlockFormDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -29,6 +30,7 @@ export function TimerView({ blockId, onPickBlock, pausedBlockName, onDismissPaus
   const running = isRunning && activeBlockId === blockId;
 
   const { strayed, clearStrayed } = useStrictModeGuard(running && Boolean(block?.strictMode));
+  const [editOpen, setEditOpen] = useState(false);
 
   // Auto-dismiss the "paused" warning after 6 s
   useEffect(() => {
@@ -100,8 +102,17 @@ export function TimerView({ blockId, onPickBlock, pausedBlockName, onDismissPaus
 
   return (
     <div className="mx-auto grid max-w-4xl grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
-      <Card className="flex flex-col items-center gap-6 p-8">
+      <Card className="relative flex flex-col items-center gap-6 p-8">
         <AmbientSoundPlayer sound={block.ambientSound} kind={running ? currentSegment?.kind ?? null : null} />
+
+        <button
+          id="timer-edit-block-btn"
+          onClick={() => setEditOpen(true)}
+          title="Edit this block"
+          className="absolute right-5 top-5 flex h-8 w-8 items-center justify-center rounded-full border border-glass-border bg-white/[0.03] text-muted transition-colors hover:bg-white/10 hover:text-paper"
+        >
+          <Pencil size={14} />
+        </button>
 
         {/* Auto-paused warning — shown when this block replaced another running one */}
         <AnimatePresence>
@@ -213,6 +224,8 @@ export function TimerView({ blockId, onPickBlock, pausedBlockName, onDismissPaus
           />
         </CardContent>
       </Card>
+
+      <BlockFormDialog open={editOpen} onOpenChange={setEditOpen} existingBlock={block} allBlocks={blocks} />
     </div>
   );
 }
