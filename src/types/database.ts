@@ -107,6 +107,19 @@ export interface Database {
         };
         Update: Partial<Database["public"]["Tables"]["focus_sessions"]["Row"]>;
       } & NoRelationships;
+      categories: {
+        Row: {
+          id: string;
+          user_id: string;
+          name: string;
+          created_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["categories"]["Row"]> & {
+          user_id: string;
+          name: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["categories"]["Row"]>;
+      } & NoRelationships;
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

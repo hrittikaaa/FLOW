@@ -8,12 +8,12 @@ import { Switch } from "@/components/ui/switch";
 import { SliderWithInput } from "@/components/ui/slider-input";
 import { TimelineStrip } from "@/components/timer/TimelineStrip";
 import { TaskList } from "@/components/blocks/TaskList";
+import { CategorySelect } from "@/components/blocks/CategorySelect";
 import { useBlocksStore } from "@/store/useBlocksStore";
 import { useProfileStore } from "@/store/useProfileStore";
 import { generateSessionPlan } from "@/lib/sessionCalculator";
 import type { AmbientSound, BlockDraft, FocusBlock } from "@/types";
 
-const CATEGORIES = ["Coding", "Leetcode", "Project", "Studying", "Theory", "Lab", "Research", "Planning", "Others"];
 const AMBIENT_OPTIONS: { value: AmbientSound; label: string }[] = [
   { value: "none", label: "None" },
   { value: "white-noise", label: "White noise" },
@@ -126,21 +126,10 @@ export function BlockFormDialog({ open, onOpenChange, existingBlock, allBlocks }
                 placeholder="e.g. Thesis writing sprint"
               />
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="category">Category</Label>
-              <select
-                id="category"
-                value={draft.category}
-                onChange={(e) => setDraft((d) => ({ ...d, category: e.target.value }))}
-                className="glass-field h-10 w-full rounded-lg px-3 text-sm text-paper focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus/50"
-              >
-                {CATEGORIES.map((c) => (
-                  <option key={c} value={c} className="bg-ink-raised">
-                    {c}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <CategorySelect
+              value={draft.category}
+              onChange={(category) => setDraft((d) => ({ ...d, category }))}
+            />
             <div className="space-y-1.5">
               <Label htmlFor="ambient">Ambient sound</Label>
               <select
