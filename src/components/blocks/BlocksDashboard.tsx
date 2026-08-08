@@ -1,8 +1,9 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { useBlocksStore } from "@/store/useBlocksStore";
 import { BlockCard } from "@/components/blocks/BlockCard";
+import { BlockCardSkeleton } from "@/components/blocks/BlockCardSkeleton";
 import { BlockFormDialog } from "@/components/blocks/BlockFormDialog";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -15,6 +16,7 @@ interface BlocksDashboardProps {
 type FilterTab = "all" | "active" | "planned" | "completed";
 
 const FILTER_ORDER: FilterTab[] = ["all", "active", "planned", "completed"];
+const PAGE_SIZE = 6;
 
 /** Slides the incoming filter's results in from the direction it was navigated toward. */
 const slideVariants = {
@@ -25,16 +27,18 @@ const slideVariants = {
 const slideTransition = { duration: 0.3, ease: [0.22, 1, 0.36, 1] as const };
 
 export function BlocksDashboard({ onSelectBlock }: BlocksDashboardProps) {
-  const { blocks, deleteBlock, resetBlock } = useBlocksStore();
+  const { blocks, loading, deleteBlock, resetBlock } = useBlocksStore();
   const [formOpen, setFormOpen] = useState(false);
   const [editingBlock, setEditingBlock] = useState<FocusBlock | undefined>(undefined);
   const [tab, setTab] = useState<FilterTab>("all");
   const [tabDirection, setTabDirection] = useState(0);
   const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
 
   const handleTabChange = (next: FilterTab) => {
     setTabDirection(FILTER_ORDER.indexOf(next) > FILTER_ORDER.indexOf(tab) ? 1 : -1);
     setTab(next);
+    setPage(1);
   };
 
   const baseFiltered = useMemo(() => {
@@ -61,6 +65,15 @@ export function BlocksDashboard({ onSelectBlock }: BlocksDashboardProps) {
       return b ? [b] : [];
     });
   }, [orderedIds, baseFiltered]);
+
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  // Clamp instead of resetting to 1 so deleting the last item on a trailing
+  // page steps back a page rather than jumping the user to the start.
+  useEffect(() => {
+    setPage((p) => Math.min(p, pageCount));
+  }, [pageCount]);
+  const pageStart = (page - 1) * PAGE_SIZE;
+  const paginated = filtered.slice(pageStart, pageStart + PAGE_SIZE);
 
   // ref so drag enter handlers can read the current dragged id without stale closure
   const draggedIdRef = useRef<string | null>(null);
@@ -122,7 +135,13 @@ export function BlocksDashboard({ onSelectBlock }: BlocksDashboardProps) {
             exit="exit"
             transition={slideTransition}
           >
-            {filtered.length === 0 ? (
+            {loading && blocks.length === 0 ? (
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {Array.from({ length: PAGE_SIZE }).map((_, i) => (
+                  <BlockCardSkeleton key={i} />
+                ))}
+              </div>
+            ) : filtered.length === 0 ? (
               <div className="glass-panel flex flex-col items-center justify-center gap-2 px-6 py-16 text-center">
                 <p className="font-display text-lg text-paper">No focus blocks yet</p>
                 <p className="max-w-xs text-sm text-muted">
@@ -134,7 +153,7 @@ export function BlocksDashboard({ onSelectBlock }: BlocksDashboardProps) {
               </div>
             ) : (
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {filtered.map((block) => {
+                {paginated.map((block) => {
                   const isDragging = draggedId === block.id;
                   return (
                     <motion.div
@@ -175,6 +194,32 @@ export function BlocksDashboard({ onSelectBlock }: BlocksDashboardProps) {
           </motion.div>
         </AnimatePresence>
       </div>
+
+      {!loading && pageCount > 1 && (
+        <div className="flex items-center justify-center gap-3">
+          <Button
+            variant="outline"
+            size="icon"
+            disabled={page <= 1}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            aria-label="Previous page"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <span className="tabular text-sm text-muted">
+            Page {page} of {pageCount}
+          </span>
+          <Button
+            variant="outline"
+            size="icon"
+            disabled={page >= pageCount}
+            onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
+            aria-label="Next page"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
 
       <BlockFormDialog open={formOpen} onOpenChange={setFormOpen} existingBlock={editingBlock} allBlocks={blocks} />
     </div>

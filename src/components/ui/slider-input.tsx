@@ -48,7 +48,7 @@ export function SliderWithInput({ min, max, step, value, onValueChange, unit = "
         }}
         className="flex-1"
       />
-      <div className="relative w-20 shrink-0">
+      <div className="relative w-24 shrink-0">
         <Input
           type="number"
           inputMode="numeric"
@@ -61,10 +61,10 @@ export function SliderWithInput({ min, max, step, value, onValueChange, unit = "
           onKeyDown={(e) => {
             if (e.key === "Enter") e.currentTarget.blur();
           }}
-          className={cn("h-8 px-2 pr-6 text-right text-sm tabular", inputClassName)}
+          className={cn("number-field h-8 pl-2 pr-9 text-right text-sm tabular", inputClassName)}
         />
         {unit && (
-          <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted">
+          <span className="pointer-events-none absolute right-6 top-1/2 -translate-y-1/2 text-xs text-muted">
             {unit}
           </span>
         )}

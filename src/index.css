@@ -52,6 +52,16 @@
   .tabular {
     font-variant-numeric: tabular-nums;
   }
+  /*
+   * Give the native number-input spin buttons breathing room instead of
+   * letting the browser glue them to the digits — pairs with the extra
+   * right padding on `.number-field` inputs (see slider-input.tsx).
+   */
+  .number-field::-webkit-inner-spin-button,
+  .number-field::-webkit-outer-spin-button {
+    margin-left: 6px;
+    opacity: 0.7;
+  }
 }
 
 /* slim custom scrollbar */
