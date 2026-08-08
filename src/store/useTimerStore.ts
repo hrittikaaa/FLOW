@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { useBlocksStore } from "@/store/useBlocksStore";
+import { useProfileStore } from "@/store/useProfileStore";
 import { fireNotification } from "@/hooks/useNotifications";
 import { playChime } from "@/lib/notificationSound";
 
@@ -39,10 +40,54 @@ function clearTick() {
     intervalId = null;
   }
   anchor = null;
+  resetTimePassedTracking();
 }
 
 function setAnchor(baselineSeconds: number) {
   anchor = { baselineSeconds, anchoredAtMs: Date.now() };
+}
+
+/**
+ * "Timer passed" notification tracking — independent of segment boundaries.
+ * Mirrors the wall-clock anchor pattern above so it self-corrects after a
+ * throttled/backgrounded tab instead of drifting from tick-counting.
+ */
+let notifyAnchor: { baselineSeconds: number; anchoredAtMs: number } | null = null;
+let notifyIntervalSeconds = 0;
+let notifyFiredCount = 0;
+
+function resetTimePassedTracking() {
+  notifyAnchor = null;
+  notifyIntervalSeconds = 0;
+  notifyFiredCount = 0;
+}
+
+/** (Re)arms tracking from the block's current total elapsed time (spans pauses). */
+function primeTimePassedTracking(block: { completedMinutes: number; elapsedSecondsInSegment: number }) {
+  const profile = useProfileStore.getState().profile;
+  if (!profile?.timePassedNotifyEnabled) {
+    resetTimePassedTracking();
+    return;
+  }
+  notifyIntervalSeconds = Math.max(1, profile.timePassedNotifyIntervalMinutes) * 60;
+  const baselineSeconds = block.completedMinutes * 60 + block.elapsedSecondsInSegment;
+  notifyAnchor = { baselineSeconds, anchoredAtMs: Date.now() };
+  // Don't re-fire for thresholds already passed before this run started.
+  notifyFiredCount = Math.floor(baselineSeconds / notifyIntervalSeconds);
+}
+
+function checkTimePassedNotification() {
+  if (!notifyAnchor || notifyIntervalSeconds <= 0) return;
+  const elapsed = notifyAnchor.baselineSeconds + (Date.now() - notifyAnchor.anchoredAtMs) / 1000;
+  const dueCount = Math.floor(elapsed / notifyIntervalSeconds);
+  if (dueCount > notifyFiredCount) {
+    notifyFiredCount = dueCount;
+    const minutesPassed = Math.round((dueCount * notifyIntervalSeconds) / 60);
+    fireNotification(`⏱ ${minutesPassed} min elapsed`, {
+      body: `You've been running this timer for ${minutesPassed} minute${minutesPassed === 1 ? "" : "s"}.`,
+      tag: "pf-time-passed",
+    });
+  }
 }
 
 
@@ -128,6 +173,8 @@ function tick(blockId: string) {
   const blocksApi = useBlocksStore.getState();
   let block = blocksApi.blocks.find((b) => b.id === blockId);
   if (!block) return;
+
+  checkTimePassedNotification();
 
   // Real elapsed seconds since the anchor was set, regardless of how many
   // (or how few) interval callbacks actually fired in between.
@@ -239,6 +286,7 @@ export const useTimerStore = create<TimerState>((set, get) => ({
 
     set({ activeBlockId: blockId, isRunning: true, isStrictLocked: block.strictMode });
     setAnchor(block.elapsedSecondsInSegment);
+    primeTimePassedTracking(block);
     intervalId = setInterval(() => tick(blockId), 1000);
   },
 
@@ -266,6 +314,7 @@ export const useTimerStore = create<TimerState>((set, get) => ({
     blocksApi.syncRuntime(activeBlockId);
     set({ isRunning: true, isStrictLocked: block?.strictMode ?? false });
     setAnchor(block?.elapsedSecondsInSegment ?? 0);
+    if (block) primeTimePassedTracking(block);
     intervalId = setInterval(() => tick(activeBlockId), 1000);
   },
 

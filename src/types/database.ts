@@ -16,6 +16,9 @@ export interface Database {
           default_break_minutes: number;
           default_long_break_minutes: number;
           sessions_before_long_break: number;
+          long_breaks_enabled: boolean;
+          time_passed_notify_enabled: boolean;
+          time_passed_notify_interval_minutes: number;
           created_at: string;
           updated_at: string;
         };

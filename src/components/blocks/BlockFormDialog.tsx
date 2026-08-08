@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,7 +12,6 @@ import { CategorySelect } from "@/components/blocks/CategorySelect";
 import { useBlocksStore } from "@/store/useBlocksStore";
 import { useProfileStore } from "@/store/useProfileStore";
 import { generateSessionPlan } from "@/lib/sessionCalculator";
-import { cn } from "@/lib/utils";
 import type { AmbientSound, BlockDraft, FocusBlock } from "@/types";
 
 const AMBIENT_OPTIONS: { value: AmbientSound; label: string }[] = [
@@ -45,16 +44,20 @@ const emptyDraft: BlockDraft = {
 export function BlockFormDialog({ open, onOpenChange, existingBlock, allBlocks }: BlockFormDialogProps) {
   const { createBlock, updateBlockMeta } = useBlocksStore();
   const profile = useProfileStore((s) => s.profile);
+  // `existingBlock` is a snapshot captured when the dialog was opened — for
+  // the goals list we want the live version so edits elsewhere (or a
+  // just-completed sync) are reflected instead of showing a stale, possibly
+  // task-less snapshot while the dialog sits open.
+  const liveExistingBlock = useBlocksStore((s) => (existingBlock ? s.blocks.find((b) => b.id === existingBlock.id) : undefined)) ?? existingBlock;
   const [draft, setDraft] = useState<BlockDraft>(emptyDraft);
   const [goalsText, setGoalsText] = useState("");
   const [saving, setSaving] = useState(false);
-  const [longBreaksEnabled, setLongBreaksEnabled] = useState(true);
-  // Remembers the last non-zero long-break length so toggling back on
-  // restores it instead of dropping the user back to some fixed default.
-  const lastLongBreakRef = useRef(15);
 
   const isEdit = Boolean(existingBlock);
   const isLocked = Boolean(existingBlock?.strictMode && existingBlock?.status === "active");
+  // Long breaks are enabled/disabled globally from Settings — this form only
+  // surfaces the length/cadence controls when that account-level switch is on.
+  const longBreaksEnabled = profile?.longBreaksEnabled ?? true;
 
   useEffect(() => {
     if (existingBlock) {
@@ -70,10 +73,8 @@ export function BlockFormDialog({ open, onOpenChange, existingBlock, allBlocks }
         ambientSound: existingBlock.ambientSound,
         taskTitles: [],
       });
-      setLongBreaksEnabled(existingBlock.longBreakMinutes > 0);
-      if (existingBlock.longBreakMinutes > 0) lastLongBreakRef.current = existingBlock.longBreakMinutes;
     } else {
-      const defaultLongBreak = profile?.defaultLongBreakMinutes ?? emptyDraft.longBreakMinutes;
+      const defaultLongBreak = profile?.longBreaksEnabled === false ? 0 : profile?.defaultLongBreakMinutes ?? emptyDraft.longBreakMinutes;
       setDraft({
         ...emptyDraft,
         focusMinutes: profile?.defaultFocusMinutes ?? emptyDraft.focusMinutes,
@@ -81,8 +82,6 @@ export function BlockFormDialog({ open, onOpenChange, existingBlock, allBlocks }
         longBreakMinutes: defaultLongBreak,
         sessionsBeforeLongBreak: profile?.sessionsBeforeLongBreak ?? emptyDraft.sessionsBeforeLongBreak,
       });
-      setLongBreaksEnabled(defaultLongBreak > 0);
-      if (defaultLongBreak > 0) lastLongBreakRef.current = defaultLongBreak;
       setGoalsText("");
     }
   }, [existingBlock, open, profile]);
@@ -207,44 +206,31 @@ export function BlockFormDialog({ open, onOpenChange, existingBlock, allBlocks }
                 onValueChange={(v) => setDraft((d) => ({ ...d, breakMinutes: v }))}
               />
             </div>
-            <div className={cn("space-y-1.5 transition-opacity", !longBreaksEnabled && "pointer-events-none opacity-40")}>
-              <Label>Long break</Label>
-              <SliderWithInput
-                min={5}
-                max={45}
-                step={5}
-                value={longBreaksEnabled ? draft.longBreakMinutes : lastLongBreakRef.current}
-                onValueChange={(v) => {
-                  lastLongBreakRef.current = v;
-                  setDraft((d) => ({ ...d, longBreakMinutes: v }));
-                }}
-              />
-            </div>
-            <div className={cn("space-y-1.5 transition-opacity", !longBreaksEnabled && "pointer-events-none opacity-40")}>
-              <Label>Sessions per long break</Label>
-              <SliderWithInput
-                min={2}
-                max={8}
-                step={1}
-                unit=""
-                value={draft.sessionsBeforeLongBreak}
-                onValueChange={(v) => setDraft((d) => ({ ...d, sessionsBeforeLongBreak: v }))}
-              />
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between rounded-lg border border-glass-border bg-white/[0.02] px-4 py-3 backdrop-blur-sm">
-            <div>
-              <p className="text-sm font-medium text-paper">Long breaks</p>
-              <p className="text-xs text-muted">Skip the longer break between session groups entirely.</p>
-            </div>
-            <Switch
-              checked={longBreaksEnabled}
-              onCheckedChange={(v) => {
-                setLongBreaksEnabled(v);
-                setDraft((d) => ({ ...d, longBreakMinutes: v ? lastLongBreakRef.current : 0 }));
-              }}
-            />
+            {longBreaksEnabled && (
+              <>
+                <div className="space-y-1.5">
+                  <Label>Long break</Label>
+                  <SliderWithInput
+                    min={5}
+                    max={45}
+                    step={5}
+                    value={draft.longBreakMinutes}
+                    onValueChange={(v) => setDraft((d) => ({ ...d, longBreakMinutes: v }))}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Sessions per long break</Label>
+                  <SliderWithInput
+                    min={2}
+                    max={8}
+                    step={1}
+                    unit=""
+                    value={draft.sessionsBeforeLongBreak}
+                    onValueChange={(v) => setDraft((d) => ({ ...d, sessionsBeforeLongBreak: v }))}
+                  />
+                </div>
+              </>
+            )}
           </div>
 
           <div className="flex items-center justify-between rounded-lg border border-glass-border bg-white/[0.02] px-4 py-3 backdrop-blur-sm">
@@ -263,12 +249,12 @@ export function BlockFormDialog({ open, onOpenChange, existingBlock, allBlocks }
             <TimelineStrip segments={previewPlan} compact />
           </div>
 
-          {isEdit && existingBlock ? (
+          {isEdit && liveExistingBlock ? (
             <div className="space-y-2">
               <Label>Goals</Label>
               <TaskList
-                block={existingBlock}
-                otherBlocks={allBlocks.filter((b) => b.id !== existingBlock.id)}
+                block={liveExistingBlock}
+                otherBlocks={allBlocks.filter((b) => b.id !== liveExistingBlock.id)}
                 disabled={isLocked}
               />
             </div>
