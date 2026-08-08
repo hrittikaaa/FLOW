@@ -215,6 +215,13 @@ export const useBlocksStore = create<BlocksState>((set, get) => ({
       blocks: get().blocks.map((b) => (b.id === id ? { ...b, ...patch } as FocusBlock : b)),
     });
 
+    // Mark this as our own write *before* any await below fires, so the
+    // realtime echo of these updates (which lands a moment later) doesn't
+    // race a `refetchBlockDetail` against the multi-step segment rewrite
+    // further down and read the DB mid-transaction (segments deleted but
+    // not yet reinserted) — see recentLocalRuntimeWrites' doc comment.
+    recentLocalRuntimeWrites.set(id, Date.now());
+
     if (Object.keys(payload).length > 0) {
       await supabase.from("focus_blocks").update(payload).eq("id", id);
     }
@@ -232,6 +239,7 @@ export const useBlocksStore = create<BlocksState>((set, get) => ({
       if (!block) return;
       const updated = { ...block, ...patch } as FocusBlock;
 
+      recentLocalRuntimeWrites.set(id, Date.now());
       await supabase
         .from("focus_blocks")
         .update({
@@ -256,26 +264,37 @@ export const useBlocksStore = create<BlocksState>((set, get) => ({
         sessionsBeforeLongBreak: updated.sessionsBeforeLongBreak,
       }).map((s, i) => ({ ...s, position: completed.length + i }));
 
+      recentLocalRuntimeWrites.set(id, Date.now());
       await supabase.from("block_segments").delete().eq("block_id", id).eq("is_completed", false);
-      if (newPlan.length) {
-        const { data: freshRows } = await supabase
-          .from("block_segments")
-          .insert(newPlan.map((s) => ({ block_id: id, position: s.position, kind: s.kind, duration_minutes: s.durationMinutes })))
-          .select();
-        const completedRows = block.segments.filter((s) => s.isCompleted);
-        set({
-          blocks: get().blocks.map((b) =>
-            b.id === id
-              ? {
-                  ...updated,
-                  segments: [...completedRows, ...(freshRows ?? []).map(rowToSegment)].sort(
-                    (a, b2) => a.position - b2.position
-                  ),
-                }
-              : b
-          ),
-        });
-      }
+
+      const freshRows = newPlan.length
+        ? (
+            await supabase
+              .from("block_segments")
+              .insert(newPlan.map((s) => ({ block_id: id, position: s.position, kind: s.kind, duration_minutes: s.durationMinutes })))
+              .select()
+          ).data
+        : [];
+
+      // Always land the final local state, even when the new plan is empty
+      // (e.g. the shortened total time leaves no room for another segment)
+      // — previously this `set` was skipped in that case, leaving the local
+      // block pointing at segment rows that had just been deleted from the
+      // DB until the next full refetch quietly "fixed" it.
+      const completedRows = block.segments.filter((s) => s.isCompleted);
+      recentLocalRuntimeWrites.set(id, Date.now());
+      set({
+        blocks: get().blocks.map((b) =>
+          b.id === id
+            ? {
+                ...updated,
+                segments: [...completedRows, ...(freshRows ?? []).map(rowToSegment)].sort(
+                  (a, b2) => a.position - b2.position
+                ),
+              }
+            : b
+        ),
+      });
     }
   },
 

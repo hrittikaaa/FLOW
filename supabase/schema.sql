@@ -20,11 +20,19 @@ create table if not exists public.profiles (
   default_break_minutes int not null default 5,
   default_long_break_minutes int not null default 15,
   sessions_before_long_break int not null default 4,
+  long_breaks_enabled boolean not null default true,
+  time_passed_notify_enabled boolean not null default false,
+  time_passed_notify_interval_minutes int not null default 30,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 
 comment on table public.profiles is 'Per-user preferences, keyed 1:1 to auth.users';
+
+-- Safe to re-run against an existing database that predates these columns.
+alter table public.profiles add column if not exists long_breaks_enabled boolean not null default true;
+alter table public.profiles add column if not exists time_passed_notify_enabled boolean not null default false;
+alter table public.profiles add column if not exists time_passed_notify_interval_minutes int not null default 30;
 
 -- Auto-create a profile row whenever a new auth user signs up
 create or replace function public.handle_new_user()
