@@ -140,6 +140,36 @@ export interface Database {
         };
         Update: Partial<Database["public"]["Tables"]["ambient_links"]["Row"]>;
       } & NoRelationships;
+      hidden_categories: {
+        Row: {
+          id: string;
+          user_id: string;
+          name: string;
+          created_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["hidden_categories"]["Row"]> & {
+          user_id: string;
+          name: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["hidden_categories"]["Row"]>;
+      } & NoRelationships;
+      queue_items: {
+        Row: {
+          id: string;
+          user_id: string;
+          position: number;
+          kind: string;
+          block_id: string | null;
+          break_minutes: number | null;
+          created_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["queue_items"]["Row"]> & {
+          user_id: string;
+          position: number;
+          kind: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["queue_items"]["Row"]>;
+      } & NoRelationships;
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

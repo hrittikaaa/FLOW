@@ -47,8 +47,6 @@ export interface FocusBlock {
   elapsedSecondsInSegment: number;
   lastStartedAt: string | null;
   completedMinutes: number;
-  /** 0-based position in the user's "queue" of blocks to run back-to-back; null when not queued. */
-  queuePosition: number | null;
   createdAt: string;
   updatedAt: string;
   segments: BlockSegment[];
@@ -89,3 +87,8 @@ export interface SavedAmbientLink {
   url: string;
   createdAt: string;
 }
+
+/** An ordered item in the user's "run these back-to-back" queue — a block reference or a manual break. */
+export type QueueItem =
+  | { id: string; kind: "block"; blockId: string }
+  | { id: string; kind: "break"; minutes: number };

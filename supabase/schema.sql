@@ -187,6 +187,42 @@ create table if not exists public.ambient_links (
 create index if not exists idx_ambient_links_user_id on public.ambient_links (user_id);
 
 -- ---------------------------------------------------------
+-- 8. hidden_categories
+--    Built-in categories (COMMON_CATEGORIES, hardcoded client-side)
+--    that a user has "deleted" — since they're not DB rows, deleting
+--    one just remembers to hide it from that user's pickers.
+-- ---------------------------------------------------------
+create table if not exists public.hidden_categories (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users (id) on delete cascade,
+  name text not null,
+  created_at timestamptz not null default now(),
+  unique (user_id, name)
+);
+
+create index if not exists idx_hidden_categories_user_id on public.hidden_categories (user_id);
+
+-- ---------------------------------------------------------
+-- 9. queue_items
+--    A user's "run these blocks back-to-back" queue: an ordered list
+--    mixing block references and manually-inserted breaks. Replaces
+--    the older focus_blocks.queue_position approach (left in place,
+--    unused) — mutations always replace the whole ordered list rather
+--    than patching individual rows, so no update policy is needed.
+-- ---------------------------------------------------------
+create table if not exists public.queue_items (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users (id) on delete cascade,
+  position int not null,
+  kind text not null check (kind in ('block', 'break')),
+  block_id uuid references public.focus_blocks (id) on delete cascade,
+  break_minutes int check (break_minutes > 0),
+  created_at timestamptz not null default now()
+);
+
+create index if not exists idx_queue_items_user_id on public.queue_items (user_id, position);
+
+-- ---------------------------------------------------------
 -- updated_at auto-touch trigger (generic, reused by tables that have the column)
 -- ---------------------------------------------------------
 create or replace function public.touch_updated_at()
@@ -220,6 +256,8 @@ alter table public.tasks enable row level security;
 alter table public.focus_sessions enable row level security;
 alter table public.categories enable row level security;
 alter table public.ambient_links enable row level security;
+alter table public.hidden_categories enable row level security;
+alter table public.queue_items enable row level security;
 
 -- Policies have no `IF NOT EXISTS` / `CREATE OR REPLACE` in Postgres, so each
 -- is preceded by a `DROP POLICY IF EXISTS` — same re-run-safe spirit as the
@@ -326,6 +364,32 @@ create policy "ambient_links_insert_own" on public.ambient_links
 
 drop policy if exists "ambient_links_delete_own" on public.ambient_links;
 create policy "ambient_links_delete_own" on public.ambient_links
+  for delete using (auth.uid() = user_id);
+
+-- hidden_categories: select/insert/delete own rows only
+drop policy if exists "hidden_categories_select_own" on public.hidden_categories;
+create policy "hidden_categories_select_own" on public.hidden_categories
+  for select using (auth.uid() = user_id);
+
+drop policy if exists "hidden_categories_insert_own" on public.hidden_categories;
+create policy "hidden_categories_insert_own" on public.hidden_categories
+  for insert with check (auth.uid() = user_id);
+
+drop policy if exists "hidden_categories_delete_own" on public.hidden_categories;
+create policy "hidden_categories_delete_own" on public.hidden_categories
+  for delete using (auth.uid() = user_id);
+
+-- queue_items: select/insert/delete own rows only (always replaced as a whole list)
+drop policy if exists "queue_items_select_own" on public.queue_items;
+create policy "queue_items_select_own" on public.queue_items
+  for select using (auth.uid() = user_id);
+
+drop policy if exists "queue_items_insert_own" on public.queue_items;
+create policy "queue_items_insert_own" on public.queue_items
+  for insert with check (auth.uid() = user_id);
+
+drop policy if exists "queue_items_delete_own" on public.queue_items;
+create policy "queue_items_delete_own" on public.queue_items
   for delete using (auth.uid() = user_id);
 
 -- =========================================================
