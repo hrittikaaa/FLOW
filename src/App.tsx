@@ -4,9 +4,11 @@ import { useAuthStore } from "@/store/useAuthStore";
 import { useBlocksStore } from "@/store/useBlocksStore";
 import { useProfileStore } from "@/store/useProfileStore";
 import { useTimerStore } from "@/store/useTimerStore";
-import { AuthScreen } from "@/components/auth/AuthScreen";
+import { useRoute } from "@/hooks/useRoute";
+import { AuthModal } from "@/components/auth/AuthModal";
 import { Header } from "@/components/layout/Header";
 import { LiquidBackground } from "@/components/layout/LiquidBackground";
+import { LandingPage } from "@/components/landing/LandingPage";
 import { BlocksDashboard } from "@/components/blocks/BlocksDashboard";
 import { TimerView } from "@/components/timer/TimerView";
 import { WeeklyChart } from "@/components/analytics/WeeklyChart";
@@ -15,6 +17,7 @@ import { ManualEntryDialog } from "@/components/analytics/ManualEntryDialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
+
 import type { FocusBlock } from "@/types";
 import { Analytics } from "@vercel/analytics/react";
 
@@ -38,6 +41,7 @@ function App() {
   const { fetchBlocks, subscribeRealtime, blocks } = useBlocksStore();
   const fetchProfile = useProfileStore((s) => s.fetchProfile);
   const { activeBlockId, isRunning, pause } = useTimerStore();
+  const { route, navigate } = useRoute();
   const [view, setView] = useState<AppView>("dashboard");
   const [viewDirection, setViewDirection] = useState(0);
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
@@ -61,20 +65,47 @@ function App() {
     return unsubscribe;
   }, [session, fetchBlocks, fetchProfile, subscribeRealtime]);
 
+  // When auth is resolved, redirect appropriately
+  useEffect(() => {
+    if (initializing) return;
+    if (session && (route === "/" || route === "/login")) {
+      navigate("/app");
+    } else if (!session && route === "/app") {
+      navigate("/");
+    }
+  }, [session, initializing, route, navigate]);
+
   if (initializing) {
     return (
       <div className="flex min-h-screen items-center justify-center text-sm text-muted">
         <LiquidBackground />
-        Loading…
+        Loading...
       </div>
     );
   }
 
+  // Public routes -- landing page always visible; auth modal layers on top when /login
   if (!session) {
     return (
       <>
         <LiquidBackground />
-        <AuthScreen />
+        {/* Landing page is always mounted as the background */}
+        <div
+          className="transition-[filter] duration-300"
+          style={{
+            filter: route === "/login" ? "blur(3px)" : "none",
+            pointerEvents: route === "/login" ? "none" : "auto",
+          }}
+        >
+          <LandingPage onGetStarted={() => navigate("/login")} />
+        </div>
+
+        {/* Auth modal floats on top when /login */}
+        <AnimatePresence>
+          {route === "/login" && (
+            <AuthModal onClose={() => navigate("/")} />
+          )}
+        </AnimatePresence>
       </>
     );
   }
