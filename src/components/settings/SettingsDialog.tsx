@@ -1,21 +1,26 @@
 import { useEffect, useState } from "react";
-import { Trash2 } from "lucide-react";
+import { AlertTriangle, Trash2 } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { SliderWithInput } from "@/components/ui/slider-input";
 import { useProfileStore } from "@/store/useProfileStore";
+import { useAuthStore } from "@/store/useAuthStore";
 import { useNotifications } from "@/hooks/useNotifications";
-import { DeleteAccountDialog } from "@/components/settings/DeleteAccountDialog";
 
 interface SettingsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
+const CONFIRM_KEYWORD = "DELETE";
+
 export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
   const { profile, updateDefaults } = useProfileStore();
+  const { deleteAccount, user } = useAuthStore();
   const [focus, setFocus] = useState(30);
   const [brk, setBrk] = useState(5);
   const [longBrk, setLongBrk] = useState(15);
@@ -24,7 +29,15 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
   const [timePassedEnabled, setTimePassedEnabled] = useState(false);
   const [timePassedInterval, setTimePassedInterval] = useState(30);
   const [saving, setSaving] = useState(false);
-  const [deleteAccountOpen, setDeleteAccountOpen] = useState(false);
+
+  // Danger zone expands in place instead of opening a second dialog on top of
+  // this one — avoids the doubled backdrop/blur and the spacing jump that
+  // came with nesting a Dialog inside a Dialog.
+  const [deleteExpanded, setDeleteExpanded] = useState(false);
+  const [confirmText, setConfirmText] = useState("");
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const isConfirmed = confirmText === CONFIRM_KEYWORD;
 
   const { supported, permission, enabled, enable, disable } = useNotifications();
   const [notifRequesting, setNotifRequesting] = useState(false);
@@ -38,6 +51,12 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
       setLongBreaksEnabled(profile.longBreaksEnabled);
       setTimePassedEnabled(profile.timePassedNotifyEnabled);
       setTimePassedInterval(profile.timePassedNotifyIntervalMinutes);
+    }
+    if (!open) {
+      // Collapse + reset the danger zone whenever the settings dialog closes.
+      setDeleteExpanded(false);
+      setConfirmText("");
+      setDeleteError(null);
     }
   }, [profile, open]);
 
@@ -80,9 +99,27 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
     return "Enable";
   };
 
+  const closeDeleteSection = () => {
+    if (deleting) return;
+    setDeleteExpanded(false);
+    setConfirmText("");
+    setDeleteError(null);
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!isConfirmed || deleting) return;
+    setDeleting(true);
+    setDeleteError(null);
+    const result = await deleteAccount();
+    if (!result.success) {
+      setDeleteError(result.error ?? "Something went wrong. Please try again.");
+      setDeleting(false);
+    }
+    // On success the auth state change will redirect the user — no extra handling needed.
+  };
+
   return (
-    <>
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(next) => !deleting && onOpenChange(next)}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Default ratio</DialogTitle>
@@ -164,44 +201,134 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
             </div>
             <p className="text-xs text-muted leading-snug">{notifLabel()}</p>
           </div>
-        </div>
 
           {/* ── Danger Zone ─────────────────────────────────────────────── */}
-          <div className="rounded-lg border border-danger/30 bg-danger/5 px-4 py-3 space-y-2 backdrop-blur-sm">
+          <div className="rounded-lg border border-danger/30 bg-danger/5 px-4 py-3 space-y-3 backdrop-blur-sm">
             <p className="text-xs font-semibold uppercase tracking-widest text-danger/70">Danger zone</p>
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-medium text-paper leading-tight">Delete account</p>
-                <p className="text-xs text-muted leading-snug mt-0.5">
-                  Permanently erase your account and all associated data.
-                </p>
-              </div>
-              <Button
-                id="delete-account-open-btn"
-                size="sm"
-                variant="danger"
-                onClick={() => setDeleteAccountOpen(true)}
-                className="shrink-0 gap-1.5"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-                Delete
-              </Button>
-            </div>
-          </div>
 
-        <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button onClick={handleSave} disabled={saving}>
-            {saving ? "Saving…" : "Save defaults"}
-          </Button>
-        </DialogFooter>
+            {!deleteExpanded ? (
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-medium text-paper leading-tight">Delete account</p>
+                  <p className="text-xs text-muted leading-snug mt-0.5">
+                    Permanently erase your account and all associated data.
+                  </p>
+                </div>
+                <Button
+                  id="delete-account-open-btn"
+                  size="sm"
+                  variant="danger"
+                  onClick={() => setDeleteExpanded(true)}
+                  className="shrink-0 gap-1.5"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Delete
+                </Button>
+              </div>
+            ) : (
+              <motion.form
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleDeleteAccount();
+                }}
+                className="space-y-3"
+              >
+                <div className="space-y-2 rounded-lg border border-danger/30 bg-danger/10 px-3 py-2.5">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-danger" />
+                    <p className="text-sm font-medium text-danger">This is permanent</p>
+                  </div>
+                  <ul className="ml-6 space-y-1 text-xs text-danger/80 list-disc">
+                    <li>
+                      Your account for <span className="font-medium text-danger">{user?.email}</span>
+                    </li>
+                    <li>All your focus blocks and session history</li>
+                    <li>All analytics and logged focus time</li>
+                    <li>Your profile and preference settings</li>
+                  </ul>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="delete-confirm-input" className="text-sm normal-case text-muted">
+                    Type <span className="font-mono font-semibold text-paper">{CONFIRM_KEYWORD}</span> to confirm
+                  </Label>
+                  <Input
+                    id="delete-confirm-input"
+                    value={confirmText}
+                    onChange={(e) => setConfirmText(e.target.value)}
+                    placeholder={CONFIRM_KEYWORD}
+                    disabled={deleting}
+                    className={confirmText.length > 0 && !isConfirmed ? "border-danger/50 focus:ring-danger/40" : ""}
+                    autoComplete="off"
+                    spellCheck={false}
+                    autoFocus
+                  />
+                </div>
+
+                <AnimatePresence>
+                  {deleteError && (
+                    <motion.p
+                      key="delete-error"
+                      initial={{ opacity: 0, y: -4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -4 }}
+                      className="text-xs text-danger"
+                    >
+                      {deleteError}
+                    </motion.p>
+                  )}
+                </AnimatePresence>
+
+                <div className="flex items-center justify-end gap-2">
+                  <Button
+                    id="delete-account-cancel-btn"
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={closeDeleteSection}
+                    disabled={deleting}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    id="delete-account-confirm-btn"
+                    type="submit"
+                    variant="danger"
+                    size="sm"
+                    disabled={!isConfirmed || deleting}
+                    className="gap-2"
+                  >
+                    {deleting ? (
+                      <>
+                        <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                        Deleting…
+                      </>
+                    ) : (
+                      <>
+                        <Trash2 className="h-3.5 w-3.5" />
+                        Delete my account
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </motion.form>
+            )}
+          </div>
+        </div>
+
+        {!deleteExpanded && (
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSave} disabled={saving}>
+              {saving ? "Saving…" : "Save defaults"}
+            </Button>
+          </DialogFooter>
+        )}
       </DialogContent>
     </Dialog>
-
-    <DeleteAccountDialog open={deleteAccountOpen} onOpenChange={setDeleteAccountOpen} />
-    </>
   );
 }
-
