@@ -390,7 +390,7 @@ export function LandingPage({ onGetStarted }: LandingPageProps) {
           transition={{ duration: 0.5, delay: 0.6 }}
           className="mt-5 flex items-center gap-4 text-xs text-muted"
         >
-          {["Free forever", "No credit card", "Works offline"].map((item) => (
+          {["Cross-device sync", "Dynamic focus blocks", "Custom sounds"].map((item) => (
             <span key={item} className="flex items-center gap-1.5">
               <CheckCircle2 className="h-3 w-3 text-rest" />
               {item}
@@ -533,8 +533,8 @@ export function LandingPage({ onGetStarted }: LandingPageProps) {
 
               <div className="flex items-center gap-4 text-xs text-muted">
                 {[
-                  "No credit card",
-                  "Cancel anytime",
+                  "Picture-in-Picture mode",
+                  "Detailed analytics",
                   "Your data stays yours",
                 ].map((item, i, arr) => (
                   <span key={item} className="flex items-center gap-3">

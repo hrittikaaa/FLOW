@@ -1,104 +1,109 @@
-# Flow — Focus Blocks
+# Flow - Focus Blocks
 
-A Pomodoro app built around **Focus Blocks**: set a total time goal, and Flow
-divides it into focus/break cycles automatically, syncs the plan and live
-timer state to Supabase, and lets you edit everything — even mid-session —
-from any device.
+A Pomodoro application built around the concept of Focus Blocks. 
+Flow allows users to set a total time goal and automatically divides it into focus and break cycles. It synchronizes the plan and live timer state seamlessly to Supabase, enabling real-time edits, even mid-session, across any device.
 
-## Stack
+## Live Demo
 
-React + Vite + TypeScript · Supabase (Postgres + Auth) · Tailwind CSS ·
-shadcn-style components on Radix primitives · Framer Motion · Zustand
+**Vercel Deployment:** [Flow App on Vercel](https://flow-livin.vercel.app/) 
 
-## 1. Install dependencies
+## Key Features
+
+*   **Dynamic Focus Blocks:** Instead of rigid individual timers, users create "Blocks" of time. The algorithm automatically chunks the block into focus segments, short breaks, and long breaks based on user preferences.
+*   **Custom Ambient Sounds & YouTube Integration:** Enhance your focus with ambient audio. The app supports playing custom YouTube links directly as background soundscapes, saving your favorite ambient links, and generating procedural audio using the Web Audio API (e.g., filtered noise for rain or white noise).
+*   **Picture-in-Picture (PiP) Mini Timer:** Keep track of your focus sessions without keeping the main tab open. The app includes a floating Picture-in-Picture mini timer that stays on top of your other windows.
+*   **Advanced Analytics & Manual Entry:** Track your productivity over time with detailed Weekly and Monthly charts. Missed a session? The app allows for manual time entry to keep your logs accurate.
+*   **Task Categories:** Organize your focus blocks and tasks into custom categories to better understand where your time is going.
+*   **Block Queuing:** A queue system allows you to line up multiple blocks of work for continuous, planned deep work sessions.
+*   **Real-time Synchronization:** Powered by Supabase Realtime, timers and tasks sync instantly across multiple devices. Start a timer on your laptop, and watch it tick down on your phone without refreshing.
+*   **Interactive Block Ring & Timeline Strip:** Signature visual components that display a ring sliced into arcs. Each arc is sized proportionally to the actual duration of the segment, providing a clear visual plan for the block. The timeline strip offers a linear view of your session.
+*   **Mid-Session Editing:** Users can edit tasks, skip segments, or modify the plan while the timer is actively running, with the state seamlessly resolving across the network.
+*   **Strict Mode Protection:** Implements guards against accidental tab closure or navigation mid-session to prevent data loss or interrupted focus.
+*   **Modern Aesthetics:** A sleek, responsive dark-mode UI built with Tailwind CSS, Framer Motion for micro-interactions, and a custom color palette emphasizing deep ink backgrounds, amber for focus, and teal for rest.
+
+## Technology Stack
+
+*   **Frontend Framework:** React 19, Vite, TypeScript
+*   **State Management:** Zustand (for both local UI state and synced Supabase state)
+*   **Styling:** Tailwind CSS, class-variance-authority, tailwind-merge
+*   **Components:** Radix UI primitives, custom UI components, Lucide React icons
+*   **Animations:** Framer Motion
+*   **Backend & Database:** Supabase (PostgreSQL, Authentication, Realtime, Row Level Security)
+*   **Analytics:** Vercel Analytics
+
+## System Architecture
+
+The application is structured into several core functional domains:
+
+*   **Session Calculator (`src/lib/sessionCalculator.ts`):** 
+    A pure function algorithm that takes total time, focus length, break length, and long-break rules, and outputs an ordered list of segments. Used for both live preview during block creation and materializing database rows upon saving.
+*   **Blocks & Categories Stores (`src/store/useBlocksStore.ts`, `src/store/useCategoriesStore.ts`):** 
+    Handles all CRUD operations against Supabase (blocks, segments, tasks, session logs, categories). Applies local-first runtime patches to ensure the UI feels instantaneous while persisting data in the background. Manages Postgres Realtime subscriptions to sync cross-device state seamlessly.
+*   **Timer & PiP Stores (`src/store/useTimerStore.ts`, `src/store/usePipStore.ts`):** 
+    The core ticking engine. Driven by a single `setInterval`, it manages the active block, auto-advances segments, logs completions, syncs progress to Supabase every 5 seconds, and controls the floating Picture-in-Picture window.
+*   **Ambient Audio Stores (`src/store/useAmbientPlayerStore.ts`, `src/store/useAmbientLinksStore.ts`):** 
+    Manages custom YouTube URLs, saved ambient links, and the state of the background audio player.
+*   **Profile Store (`src/store/useProfileStore.ts`):** 
+    Manages user preferences, reading and writing default focus/break ratios from the `profiles` table.
+
+## Setup and Installation
+
+### 1. Clone and Install Dependencies
 
 ```bash
+git clone <repository-url>
+cd pomodoro-flow
 npm install
 ```
 
-## 2. Create a Supabase project
+### 2. Supabase Configuration
 
-1. Go to [supabase.com](https://supabase.com) and create a new project.
-2. Open the **SQL Editor** and run the entire contents of
-   [`supabase/schema.sql`](./supabase/schema.sql). This creates:
-   - `profiles`, `focus_blocks`, `block_segments`, `tasks`, `focus_sessions`
-   - Row Level Security policies scoped to `auth.uid()` on every table
-   - A trigger that auto-creates a `profiles` row on signup
-   - Realtime publication for `focus_blocks`, `block_segments`, `tasks`
-3. In **Project Settings → API**, copy your **Project URL** and **anon public key**.
-4. By default new Supabase projects require email confirmation. For local
-   testing you can turn this off under **Authentication → Providers → Email**.
+1.  Create a new project at [supabase.com](https://supabase.com).
+2.  Navigate to the **SQL Editor** in your Supabase dashboard.
+3.  Execute the contents of `supabase/schema.sql`. This script provisions:
+    *   Tables: `profiles`, `focus_blocks`, `block_segments`, `tasks`, `focus_sessions`, `categories`, `ambient_links` (and any others in the schema).
+    *   Row Level Security (RLS) policies ensuring data isolation (scoped to `auth.uid()`).
+    *   A database trigger that automatically creates a `profiles` row upon user signup.
+    *   Realtime publication settings for `focus_blocks`, `block_segments`, and `tasks`.
+4.  For seamless local development, you may want to disable email confirmation in **Authentication -> Providers -> Email**.
+5.  In **Project Settings -> API**, copy your **Project URL** and **anon public key**.
 
-## 3. Configure environment variables
+### 3. Environment Variables
+
+Copy the example environment file:
 
 ```bash
 cp .env.example .env.local
 ```
 
-Fill in:
+Populate `.env.local` with your Supabase credentials:
 
-```
+```env
 VITE_SUPABASE_URL=https://your-project-ref.supabase.co
 VITE_SUPABASE_ANON_KEY=your-anon-public-key
 ```
 
-## 4. Run it
+### 4. Development Server
+
+Start the Vite development server:
 
 ```bash
 npm run dev
 ```
 
-Sign up with an email/password on the screen that appears — that's it, your
-account and first blocks are ready to go. Open the same URL on your phone
-and sign in with the same account to see everything sync.
+The application will be available at `http://localhost:5173`. You can create an account using email/password. To test realtime syncing, open a second browser window or a mobile device, log in with the same credentials, and start a timer.
 
-## 5. Build for production
+## Building and Deployment
+
+To create an optimized production build:
 
 ```bash
 npm run build
 ```
 
-Outputs to `dist/`. Deploy it anywhere that serves static files (Vercel,
-Netlify, Cloudflare Pages, etc.) and set the two `VITE_SUPABASE_*` env vars
-in that platform's dashboard.
+This compiles TypeScript and bundles the application into the `dist/` directory.
 
-## How the pieces fit together
+## Security Notes
 
-- **`src/lib/sessionCalculator.ts`** — the Dynamic Block algorithm. Pure
-  function: `(total time, focus length, break length, long-break rules) →
-  ordered list of segments`. Used for the live preview while creating a
-  block, and to materialize the real `block_segments` rows on save.
-- **`src/store/useBlocksStore.ts`** — all CRUD against Supabase (blocks,
-  segments, tasks, session log), plus local-first runtime patches so the
-  timer feels instant while still persisting. Also subscribes to Postgres
-  Realtime on `focus_blocks`/`tasks` (via `subscribeRealtime()`) so a block
-  started on your laptop updates live on your phone — no refresh needed.
-  A short self-echo window prevents that subscription from fighting with
-  this device's own per-second local ticking.
-- **`src/store/useProfileStore.ts`** — reads/writes your default
-  focus/break/long-break ratio from the `profiles` table (gear icon in the
-  header). New blocks pre-fill from these defaults; each block can still
-  override its own ratio.
-- **`src/store/useTimerStore.ts`** — the ticking engine. One `setInterval`
-  drives the active block, auto-advances through segments, logs completed
-  segments to `focus_sessions` for analytics, and syncs progress to
-  Supabase every 5 seconds (and on pause/skip/stop) so you can pick up the
-  same block from another device mid-session.
-- **`src/components/timer/BlockRing.tsx`** — the signature visual: a ring
-  sliced into arcs sized by each segment's actual duration, so the shape of
-  the ring always reflects your real plan for the block.
-- **Strict mode** (`useStrictModeGuard`) warns before you close/refresh the
-  tab mid-session and disables edit/delete affordances on the running block
-  elsewhere in the UI. A page can't block switching tabs outright — that's
-  a browser sandbox limit, not something any web app can override.
-- **Ambient soundscapes** are generated procedurally with the Web Audio API
-  (filtered noise for rain/lo-fi/white noise) rather than bundled audio
-  files, so there's nothing to host or license.
-
-## Notes
-
-- `src/types/database.ts` is a hand-written mirror of the SQL schema. Once
-  your project is linked to the Supabase CLI, you can replace it with a
-  generated version: `npx supabase gen types typescript --linked`.
-- Row Level Security means all of this is safe to ship as-is — a signed-in
-  user can only ever read or write their own rows.
+*   **Row Level Security (RLS):** All database interactions are protected by Postgres RLS. Users can strictly only read, update, and delete their own data.
+*   **Database Types:** `src/types/database.ts` acts as a mirror for the SQL schema. Once your project is linked to the Supabase CLI, you can replace it with a generated version by running `npx supabase gen types typescript --linked`.
