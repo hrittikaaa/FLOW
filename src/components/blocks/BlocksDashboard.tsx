@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
-import { useBlocksStore, getQueuedBlocks } from "@/store/useBlocksStore";
+import { useBlocksStore } from "@/store/useBlocksStore";
+import { useQueueStore } from "@/store/useQueueStore";
 import { BlockCard } from "@/components/blocks/BlockCard";
 import { BlockCardSkeleton } from "@/components/blocks/BlockCardSkeleton";
 import { BlockFormDialog } from "@/components/blocks/BlockFormDialog";
@@ -31,7 +32,8 @@ const slideVariants = {
 const slideTransition = { duration: 0.3, ease: [0.22, 1, 0.36, 1] as const };
 
 export function BlocksDashboard({ onSelectBlock, onResumeBlock, onQuickStartBlock }: BlocksDashboardProps) {
-  const { blocks, loading, deleteBlock, resetBlock, setQueue } = useBlocksStore();
+  const { blocks, loading, deleteBlock, resetBlock } = useBlocksStore();
+  const { items: queueItems, addBlock: addToQueue, removeBlock: removeFromQueue } = useQueueStore();
   const [formOpen, setFormOpen] = useState(false);
   const [editingBlock, setEditingBlock] = useState<FocusBlock | undefined>(undefined);
   const [tab, setTab] = useState<FilterTab>("all");
@@ -92,12 +94,17 @@ export function BlocksDashboard({ onSelectBlock, onResumeBlock, onQuickStartBloc
     setDraggedId(null);
   }
 
+  const queuedBlockIds = useMemo(
+    () => new Set(queueItems.filter((i) => i.kind === "block").map((i) => i.blockId)),
+    [queueItems]
+  );
+
   function handleToggleQueue(block: FocusBlock) {
-    const queuedIds = getQueuedBlocks(blocks).map((b) => b.id);
-    const next = queuedIds.includes(block.id)
-      ? queuedIds.filter((id) => id !== block.id)
-      : [...queuedIds, block.id];
-    setQueue(next);
+    if (queuedBlockIds.has(block.id)) {
+      removeFromQueue(block.id);
+    } else {
+      addToQueue(block.id);
+    }
   }
 
   function handleDragEnter(hoverId: string) {
@@ -116,7 +123,7 @@ export function BlocksDashboard({ onSelectBlock, onResumeBlock, onQuickStartBloc
 
   return (
     <div className="space-y-5">
-      <QueueBar blocks={blocks} />
+      <QueueBar />
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Tabs value={tab} onValueChange={(v) => handleTabChange(v as FilterTab)}>
@@ -201,7 +208,7 @@ export function BlocksDashboard({ onSelectBlock, onResumeBlock, onQuickStartBloc
                         onDelete={(b) => deleteBlock(b.id)}
                         onRestart={(b) => resetBlock(b.id)}
                         isDragging={isDragging}
-                        queued={block.queuePosition !== null}
+                        queued={queuedBlockIds.has(block.id)}
                         onToggleQueue={handleToggleQueue}
                       />
                     </motion.div>

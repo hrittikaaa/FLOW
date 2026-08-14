@@ -64,7 +64,6 @@ function rowToBlock(row: BlockRow, segments: SegmentRow[], tasks: TaskRow[]): Fo
     elapsedSecondsInSegment: row.elapsed_seconds_in_segment,
     lastStartedAt: row.last_started_at,
     completedMinutes: row.completed_minutes,
-    queuePosition: row.queue_position,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     segments: segments
@@ -88,9 +87,6 @@ interface BlocksState {
   updateBlockMeta: (id: string, patch: Partial<BlockDraft>) => Promise<void>;
   deleteBlock: (id: string) => Promise<void>;
   setStatus: (id: string, status: BlockStatus) => Promise<void>;
-  /** Sets the exact ordered set of queued block ids — assigns 0-based `queuePosition`
-   *  to each, and clears it (null) for any block that was queued but isn't included. */
-  setQueue: (orderedBlockIds: string[]) => Promise<void>;
 
   addTask: (blockId: string, title: string) => Promise<void>;
   toggleTask: (taskId: string, isDone: boolean) => Promise<void>;
@@ -115,13 +111,6 @@ interface BlocksState {
    *  signed-in devices see updates live instead of only on next page load.
    *  Returns an unsubscribe function. */
   subscribeRealtime: () => () => void;
-}
-
-/** Returns the queued blocks (queuePosition !== null), sorted by queue order. */
-export function getQueuedBlocks(blocks: FocusBlock[]): FocusBlock[] {
-  return blocks
-    .filter((b) => b.queuePosition !== null)
-    .sort((a, b) => a.queuePosition! - b.queuePosition!);
 }
 
 export const useBlocksStore = create<BlocksState>((set, get) => ({
@@ -356,35 +345,6 @@ export const useBlocksStore = create<BlocksState>((set, get) => ({
   setStatus: async (id, status) => {
     set({ blocks: get().blocks.map((b) => (b.id === id ? { ...b, status } : b)) });
     await supabase.from("focus_blocks").update({ status }).eq("id", id);
-  },
-
-  setQueue: async (orderedBlockIds) => {
-    const nextPosition = new Map(orderedBlockIds.map((id, i) => [id, i]));
-    const prevBlocks = get().blocks;
-
-    set({
-      blocks: prevBlocks.map((b) =>
-        nextPosition.has(b.id)
-          ? { ...b, queuePosition: nextPosition.get(b.id)! }
-          : b.queuePosition !== null
-          ? { ...b, queuePosition: null }
-          : b
-      ),
-    });
-
-    // Persist every id whose queuePosition actually changed (newly queued, reordered, or removed).
-    const touchedIds = new Set([
-      ...orderedBlockIds,
-      ...prevBlocks.filter((b) => b.queuePosition !== null).map((b) => b.id),
-    ]);
-    await Promise.all(
-      [...touchedIds].map((id) =>
-        supabase
-          .from("focus_blocks")
-          .update({ queue_position: nextPosition.has(id) ? nextPosition.get(id)! : null })
-          .eq("id", id)
-      )
-    );
   },
 
   addTask: async (blockId, title) => {
