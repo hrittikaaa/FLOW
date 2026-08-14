@@ -45,6 +45,8 @@ export interface FocusBlock {
   elapsedSecondsInSegment: number;
   lastStartedAt: string | null;
   completedMinutes: number;
+  /** 0-based position in the user's "queue" of blocks to run back-to-back; null when not queued. */
+  queuePosition: number | null;
   createdAt: string;
   updatedAt: string;
   segments: BlockSegment[];

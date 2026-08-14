@@ -1,4 +1,4 @@
-import { CheckCircle2, MoreHorizontal, Pencil, Play, RotateCcw, Timer, Trash2 } from "lucide-react";
+import { CheckCircle2, ListPlus, MoreHorizontal, Pencil, Play, RotateCcw, Timer, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,12 +14,17 @@ const segColorDim = (kind: string) => (kind === "focus" ? "rgba(242,166,90,0.18)
 
 interface BlockCardProps {
   block: FocusBlock;
+  /** Opens the full timer view (used for "active"/"completed" blocks). */
   onStart: (block: FocusBlock) => void;
+  /** Starts a "planned" block in place, without navigating away from the dashboard. */
+  onQuickStart?: (block: FocusBlock) => void;
   onResume: (block: FocusBlock) => void;
   onEdit: (block: FocusBlock) => void;
   onDelete: (block: FocusBlock) => void;
   onRestart: (block: FocusBlock) => void;
   isDragging?: boolean;
+  queued?: boolean;
+  onToggleQueue?: (block: FocusBlock) => void;
 }
 
 const statusStyles: Record<FocusBlock["status"], string> = {
@@ -30,9 +35,21 @@ const statusStyles: Record<FocusBlock["status"], string> = {
   archived: "bg-white/5 text-muted",
 };
 
-export function BlockCard({ block, onStart, onResume, onEdit, onDelete, onRestart, isDragging }: BlockCardProps) {
+export function BlockCard({
+  block,
+  onStart,
+  onQuickStart,
+  onResume,
+  onEdit,
+  onDelete,
+  onRestart,
+  isDragging,
+  queued,
+  onToggleQueue,
+}: BlockCardProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const doneTasks = block.tasks.filter((t) => t.isDone).length;
+  const canQueue = onToggleQueue && (block.status === "planned" || block.status === "paused");
 
   // Include progress within the current (possibly still-running) segment so the
   // bar keeps advancing live even while this card is off-screen on another tab —
@@ -82,13 +99,27 @@ export function BlockCard({ block, onStart, onResume, onEdit, onDelete, onRestar
                 {block.category}
               </p>
             </div>
-            <div className="relative shrink-0">
-              <button
-                onClick={() => setMenuOpen((v) => !v)}
-                className="rounded-full p-1.5 text-muted hover:bg-white/10 hover:text-paper"
-              >
-                <MoreHorizontal className="h-4 w-4" />
-              </button>
+            <div className="flex shrink-0 items-start gap-1">
+              {canQueue && (
+                <button
+                  onClick={() => onToggleQueue!(block)}
+                  title={queued ? "Remove from queue" : "Add to queue"}
+                  aria-pressed={queued}
+                  className={cn(
+                    "rounded-full p-1.5 transition-colors",
+                    queued ? "bg-focus/20 text-focus" : "text-muted hover:bg-white/10 hover:text-paper"
+                  )}
+                >
+                  <ListPlus className="h-4 w-4" />
+                </button>
+              )}
+              <div className="relative">
+                <button
+                  onClick={() => setMenuOpen((v) => !v)}
+                  className="rounded-full p-1.5 text-muted hover:bg-white/10 hover:text-paper"
+                >
+                  <MoreHorizontal className="h-4 w-4" />
+                </button>
               {menuOpen && (
                 <div
                   className="glass-panel-strong absolute right-0 top-9 z-10 w-36 overflow-hidden rounded-lg"
@@ -126,6 +157,7 @@ export function BlockCard({ block, onStart, onResume, onEdit, onDelete, onRestar
                   </button>
                 </div>
               )}
+              </div>
             </div>
           </div>
         </CardHeader>
@@ -187,7 +219,11 @@ export function BlockCard({ block, onStart, onResume, onEdit, onDelete, onRestar
             variant={block.status === "active" ? "primary" : "outline"}
             size="sm"
             className="w-full"
-            onClick={() => block.status === "paused" ? onResume(block) : onStart(block)}
+            onClick={() => {
+              if (block.status === "paused") onResume(block);
+              else if (block.status === "planned" && onQuickStart) onQuickStart(block);
+              else onStart(block);
+            }}
           >
             {block.status === "active" ? <Timer className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
             {block.status === "active"

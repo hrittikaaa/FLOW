@@ -76,12 +76,18 @@ create table if not exists public.focus_blocks (
   elapsed_seconds_in_segment int not null default 0,
   last_started_at timestamptz,                      -- null when paused/not running
   completed_minutes int not null default 0,
+  -- 0-based position in the user's "queue" of blocks to run back-to-back; null when not queued.
+  queue_position int,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 
+-- Safe to re-run against an existing database that predates this column.
+alter table public.focus_blocks add column if not exists queue_position int;
+
 create index if not exists idx_focus_blocks_user_id on public.focus_blocks (user_id);
 create index if not exists idx_focus_blocks_status on public.focus_blocks (user_id, status);
+create index if not exists idx_focus_blocks_queue on public.focus_blocks (user_id, queue_position) where queue_position is not null;
 
 comment on table public.focus_blocks is 'A user-defined time block split into focus/break cycles';
 

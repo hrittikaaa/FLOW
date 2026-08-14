@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
-import { useBlocksStore } from "@/store/useBlocksStore";
+import { useBlocksStore, getQueuedBlocks } from "@/store/useBlocksStore";
 import { BlockCard } from "@/components/blocks/BlockCard";
 import { BlockCardSkeleton } from "@/components/blocks/BlockCardSkeleton";
 import { BlockFormDialog } from "@/components/blocks/BlockFormDialog";
+import { QueueBar } from "@/components/blocks/QueueBar";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { FocusBlock } from "@/types";
@@ -12,6 +13,8 @@ import type { FocusBlock } from "@/types";
 interface BlocksDashboardProps {
   onSelectBlock: (block: FocusBlock) => void;
   onResumeBlock: (block: FocusBlock) => void;
+  /** Starts a planned block in place, without switching to the timer view. */
+  onQuickStartBlock: (block: FocusBlock) => void;
 }
 
 type FilterTab = "all" | "active" | "planned" | "completed";
@@ -27,8 +30,8 @@ const slideVariants = {
 };
 const slideTransition = { duration: 0.3, ease: [0.22, 1, 0.36, 1] as const };
 
-export function BlocksDashboard({ onSelectBlock, onResumeBlock }: BlocksDashboardProps) {
-  const { blocks, loading, deleteBlock, resetBlock } = useBlocksStore();
+export function BlocksDashboard({ onSelectBlock, onResumeBlock, onQuickStartBlock }: BlocksDashboardProps) {
+  const { blocks, loading, deleteBlock, resetBlock, setQueue } = useBlocksStore();
   const [formOpen, setFormOpen] = useState(false);
   const [editingBlock, setEditingBlock] = useState<FocusBlock | undefined>(undefined);
   const [tab, setTab] = useState<FilterTab>("all");
@@ -89,6 +92,14 @@ export function BlocksDashboard({ onSelectBlock, onResumeBlock }: BlocksDashboar
     setDraggedId(null);
   }
 
+  function handleToggleQueue(block: FocusBlock) {
+    const queuedIds = getQueuedBlocks(blocks).map((b) => b.id);
+    const next = queuedIds.includes(block.id)
+      ? queuedIds.filter((id) => id !== block.id)
+      : [...queuedIds, block.id];
+    setQueue(next);
+  }
+
   function handleDragEnter(hoverId: string) {
     const from = draggedIdRef.current;
     if (!from || from === hoverId) return;
@@ -105,6 +116,8 @@ export function BlocksDashboard({ onSelectBlock, onResumeBlock }: BlocksDashboar
 
   return (
     <div className="space-y-5">
+      <QueueBar blocks={blocks} />
+
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Tabs value={tab} onValueChange={(v) => handleTabChange(v as FilterTab)}>
           <TabsList>
@@ -179,6 +192,7 @@ export function BlocksDashboard({ onSelectBlock, onResumeBlock }: BlocksDashboar
                       <BlockCard
                         block={block}
                         onStart={onSelectBlock}
+                        onQuickStart={onQuickStartBlock}
                         onResume={onResumeBlock}
                         onEdit={(b) => {
                           setEditingBlock(b);
@@ -187,6 +201,8 @@ export function BlocksDashboard({ onSelectBlock, onResumeBlock }: BlocksDashboar
                         onDelete={(b) => deleteBlock(b.id)}
                         onRestart={(b) => resetBlock(b.id)}
                         isDragging={isDragging}
+                        queued={block.queuePosition !== null}
+                        onToggleQueue={handleToggleQueue}
                       />
                     </motion.div>
                   );
