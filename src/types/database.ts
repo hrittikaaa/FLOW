@@ -43,6 +43,7 @@ export interface Database {
           elapsed_seconds_in_segment: number;
           last_started_at: string | null;
           completed_minutes: number;
+          queue_position: number | null;
           created_at: string;
           updated_at: string;
         };
