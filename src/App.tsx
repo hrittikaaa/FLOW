@@ -40,7 +40,7 @@ function App() {
   const { init, session, initializing } = useAuthStore();
   const { fetchBlocks, subscribeRealtime, blocks } = useBlocksStore();
   const fetchProfile = useProfileStore((s) => s.fetchProfile);
-  const { activeBlockId, isRunning, pause } = useTimerStore();
+  const { activeBlockId, isRunning, pause, resume } = useTimerStore();
   const { route, navigate } = useRoute();
   const [view, setView] = useState<AppView>("dashboard");
   const [viewDirection, setViewDirection] = useState(0);
@@ -129,6 +129,18 @@ function App() {
     handleViewChange("timer");
   };
 
+  /** Resume a paused block directly from the dashboard — no view switch needed. */
+  const handleResumeBlock = (block: FocusBlock) => {
+    // If a different block is running, pause it first (silently — no warning needed
+    // since the user is staying on the dashboard, not opening the timer view).
+    if (isRunning && activeBlockId && activeBlockId !== block.id) {
+      pause();
+    }
+    // Point the timer store at this block if it isn't already, then resume.
+    useTimerStore.setState({ activeBlockId: block.id });
+    resume();
+  };
+
   const handleChartModeChange = (next: ChartMode) => {
     setChartDirection(CHART_MODE_ORDER.indexOf(next) > CHART_MODE_ORDER.indexOf(chartMode) ? 1 : -1);
     setChartMode(next);
@@ -149,7 +161,7 @@ function App() {
             exit="exit"
             transition={slideTransition}
           >
-            {view === "dashboard" && <BlocksDashboard onSelectBlock={handleSelectBlock} />}
+            {view === "dashboard" && <BlocksDashboard onSelectBlock={handleSelectBlock} onResumeBlock={handleResumeBlock} />}
             {view === "timer" && (
               <TimerView
                 blockId={selectedBlockId}

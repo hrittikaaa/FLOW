@@ -125,9 +125,9 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
           <div className="rounded-lg border border-white/10 bg-white/5 px-4 py-3 space-y-3 backdrop-blur-sm">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <Label className="leading-tight">Timer passed notification</Label>
+                <Label className="leading-tight">Gentle nudges while you work</Label>
                 <p className="text-xs text-muted leading-snug">
-                  Ping you every so often while the timer is running, no matter how long the segment is.
+                  Get a quiet reminder every few minutes so you never lose track of time.
                 </p>
               </div>
               <Switch checked={timePassedEnabled} onCheckedChange={setTimePassedEnabled} />

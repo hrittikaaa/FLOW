@@ -15,6 +15,7 @@ const segColorDim = (kind: string) => (kind === "focus" ? "rgba(242,166,90,0.18)
 interface BlockCardProps {
   block: FocusBlock;
   onStart: (block: FocusBlock) => void;
+  onResume: (block: FocusBlock) => void;
   onEdit: (block: FocusBlock) => void;
   onDelete: (block: FocusBlock) => void;
   onRestart: (block: FocusBlock) => void;
@@ -29,7 +30,7 @@ const statusStyles: Record<FocusBlock["status"], string> = {
   archived: "bg-white/5 text-muted",
 };
 
-export function BlockCard({ block, onStart, onEdit, onDelete, onRestart, isDragging }: BlockCardProps) {
+export function BlockCard({ block, onStart, onResume, onEdit, onDelete, onRestart, isDragging }: BlockCardProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const doneTasks = block.tasks.filter((t) => t.isDone).length;
 
@@ -186,7 +187,7 @@ export function BlockCard({ block, onStart, onEdit, onDelete, onRestart, isDragg
             variant={block.status === "active" ? "primary" : "outline"}
             size="sm"
             className="w-full"
-            onClick={() => onStart(block)}
+            onClick={() => block.status === "paused" ? onResume(block) : onStart(block)}
           >
             {block.status === "active" ? <Timer className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
             {block.status === "active"

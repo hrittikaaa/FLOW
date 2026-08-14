@@ -11,6 +11,7 @@ import type { FocusBlock } from "@/types";
 
 interface BlocksDashboardProps {
   onSelectBlock: (block: FocusBlock) => void;
+  onResumeBlock: (block: FocusBlock) => void;
 }
 
 type FilterTab = "all" | "active" | "planned" | "completed";
@@ -26,7 +27,7 @@ const slideVariants = {
 };
 const slideTransition = { duration: 0.3, ease: [0.22, 1, 0.36, 1] as const };
 
-export function BlocksDashboard({ onSelectBlock }: BlocksDashboardProps) {
+export function BlocksDashboard({ onSelectBlock, onResumeBlock }: BlocksDashboardProps) {
   const { blocks, loading, deleteBlock, resetBlock } = useBlocksStore();
   const [formOpen, setFormOpen] = useState(false);
   const [editingBlock, setEditingBlock] = useState<FocusBlock | undefined>(undefined);
@@ -178,6 +179,7 @@ export function BlocksDashboard({ onSelectBlock }: BlocksDashboardProps) {
                       <BlockCard
                         block={block}
                         onStart={onSelectBlock}
+                        onResume={onResumeBlock}
                         onEdit={(b) => {
                           setEditingBlock(b);
                           setFormOpen(true);
