@@ -57,7 +57,8 @@ function rowToBlock(row: BlockRow, segments: SegmentRow[], tasks: TaskRow[]): Fo
     longBreakMinutes: row.long_break_minutes,
     sessionsBeforeLongBreak: row.sessions_before_long_break,
     strictMode: row.strict_mode,
-    ambientSound: row.ambient_sound as FocusBlock["ambientSound"],
+    ambientYoutubeUrl: row.ambient_youtube_url,
+    ambientVolume: row.ambient_volume,
     status: row.status as BlockStatus,
     currentSegmentIndex: row.current_segment_index,
     elapsedSecondsInSegment: row.elapsed_seconds_in_segment,
@@ -207,7 +208,8 @@ export const useBlocksStore = create<BlocksState>((set, get) => ({
         long_break_minutes: draft.longBreakMinutes,
         sessions_before_long_break: draft.sessionsBeforeLongBreak,
         strict_mode: draft.strictMode,
-        ambient_sound: draft.ambientSound,
+        ambient_youtube_url: draft.ambientYoutubeUrl,
+        ambient_volume: draft.ambientVolume,
         status: "planned",
       })
       .select()
@@ -256,7 +258,8 @@ export const useBlocksStore = create<BlocksState>((set, get) => ({
     if (patch.name !== undefined) payload.name = patch.name;
     if (patch.category !== undefined) payload.category = patch.category;
     if (patch.strictMode !== undefined) payload.strict_mode = patch.strictMode;
-    if (patch.ambientSound !== undefined) payload.ambient_sound = patch.ambientSound;
+    if (patch.ambientYoutubeUrl !== undefined) payload.ambient_youtube_url = patch.ambientYoutubeUrl;
+    if (patch.ambientVolume !== undefined) payload.ambient_volume = patch.ambientVolume;
 
     set({
       blocks: get().blocks.map((b) => (b.id === id ? { ...b, ...patch } as FocusBlock : b)),

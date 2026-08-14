@@ -37,7 +37,8 @@ export interface Database {
           long_break_minutes: number;
           sessions_before_long_break: number;
           strict_mode: boolean;
-          ambient_sound: string;
+          ambient_youtube_url: string | null;
+          ambient_volume: number;
           status: string;
           current_segment_index: number;
           elapsed_seconds_in_segment: number;
@@ -123,6 +124,21 @@ export interface Database {
           name: string;
         };
         Update: Partial<Database["public"]["Tables"]["categories"]["Row"]>;
+      } & NoRelationships;
+      ambient_links: {
+        Row: {
+          id: string;
+          user_id: string;
+          label: string;
+          url: string;
+          created_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["ambient_links"]["Row"]> & {
+          user_id: string;
+          label: string;
+          url: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["ambient_links"]["Row"]>;
       } & NoRelationships;
     };
     Views: Record<string, never>;

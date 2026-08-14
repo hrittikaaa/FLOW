@@ -1,6 +1,5 @@
 export type SegmentKind = "focus" | "break" | "long_break";
 export type BlockStatus = "planned" | "active" | "paused" | "completed" | "archived";
-export type AmbientSound = "none" | "rain" | "white-noise" | "lofi";
 
 export interface SegmentPlan {
   position: number;
@@ -39,7 +38,10 @@ export interface FocusBlock {
   longBreakMinutes: number;
   sessionsBeforeLongBreak: number;
   strictMode: boolean;
-  ambientSound: AmbientSound;
+  /** Pasted YouTube (or YouTube Music) video/playlist link played during focus segments; null = no ambient audio. */
+  ambientYoutubeUrl: string | null;
+  /** 0-100 */
+  ambientVolume: number;
   status: BlockStatus;
   currentSegmentIndex: number;
   elapsedSecondsInSegment: number;
@@ -74,6 +76,16 @@ export interface BlockDraft {
   longBreakMinutes: number;
   sessionsBeforeLongBreak: number;
   strictMode: boolean;
-  ambientSound: AmbientSound;
+  ambientYoutubeUrl: string | null;
+  ambientVolume: number;
   taskTitles: string[];
+}
+
+/** A user-saved YouTube/YouTube Music link, reusable across blocks' ambient audio. */
+export interface SavedAmbientLink {
+  id: string;
+  userId: string;
+  label: string;
+  url: string;
+  createdAt: string;
 }
