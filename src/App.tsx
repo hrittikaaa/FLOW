@@ -6,6 +6,7 @@ import { useProfileStore } from "@/store/useProfileStore";
 import { useTimerStore } from "@/store/useTimerStore";
 import { useRoute } from "@/hooks/useRoute";
 import { AuthModal } from "@/components/auth/AuthModal";
+import { ResetPasswordScreen } from "@/components/auth/ResetPasswordScreen";
 import { Header } from "@/components/layout/Header";
 import { LiquidBackground } from "@/components/layout/LiquidBackground";
 import { LandingPage } from "@/components/landing/LandingPage";
@@ -65,6 +66,19 @@ function App() {
     return unsubscribe;
   }, [session, fetchBlocks, fetchProfile, subscribeRealtime]);
 
+  // Warn before closing/refreshing when a timer is actively running
+  useEffect(() => {
+    if (!isRunning) return;
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      // Modern browsers ignore the custom message and show their own,
+      // but setting returnValue is still required to trigger the dialog.
+      e.returnValue = "A focus timer is still running. Are you sure you want to leave?";
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [isRunning]);
+
   // When auth is resolved, redirect appropriately
   useEffect(() => {
     if (initializing) return;
@@ -81,6 +95,18 @@ function App() {
         <LiquidBackground />
         Loading...
       </div>
+    );
+  }
+
+  // The password-reset email link lands here — Supabase exchanges the recovery
+  // token in the URL for a session behind the scenes, so this route is shown
+  // regardless of the current session state.
+  if (route === "/reset-password") {
+    return (
+      <>
+        <LiquidBackground />
+        <ResetPasswordScreen onDone={() => navigate("/app")} />
+      </>
     );
   }
 
