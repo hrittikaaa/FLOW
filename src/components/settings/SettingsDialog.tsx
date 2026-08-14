@@ -2,11 +2,13 @@ import { useEffect, useState } from "react";
 import { AlertTriangle, Trash2 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { SliderWithInput } from "@/components/ui/slider-input";
+import { AmbientLinksTab } from "@/components/settings/AmbientLinksTab";
 import { useProfileStore } from "@/store/useProfileStore";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useNotifications } from "@/hooks/useNotifications";
@@ -17,10 +19,12 @@ interface SettingsDialogProps {
 }
 
 const CONFIRM_KEYWORD = "DELETE";
+type SettingsTab = "general" | "links";
 
 export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
   const { profile, updateDefaults } = useProfileStore();
   const { deleteAccount, user } = useAuthStore();
+  const [tab, setTab] = useState<SettingsTab>("general");
   const [focus, setFocus] = useState(30);
   const [brk, setBrk] = useState(5);
   const [longBrk, setLongBrk] = useState(15);
@@ -53,10 +57,11 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
       setTimePassedInterval(profile.timePassedNotifyIntervalMinutes);
     }
     if (!open) {
-      // Collapse + reset the danger zone whenever the settings dialog closes.
+      // Collapse + reset the danger zone, and land back on the first tab, whenever the settings dialog closes.
       setDeleteExpanded(false);
       setConfirmText("");
       setDeleteError(null);
+      setTab("general");
     }
   }, [profile, open]);
 
@@ -120,15 +125,23 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={(next) => !deleting && onOpenChange(next)}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Default ratio</DialogTitle>
+          <DialogTitle>Settings</DialogTitle>
           <DialogDescription>
-            These are the defaults used when creating a new focus block. You can still tweak them per block.
+            {tab === "general"
+              ? "These are the defaults used when creating a new focus block. You can still tweak them per block."
+              : "Manage your saved YouTube/YouTube Music links for ambient audio — pick from these when creating or editing a block."}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-5">
+        <Tabs value={tab} onValueChange={(v) => setTab(v as SettingsTab)}>
+          <TabsList>
+            <TabsTrigger value="general">General</TabsTrigger>
+            <TabsTrigger value="links">Ambient Links</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="general" className="space-y-5">
           <div className="space-y-1.5">
             <Label>Focus length</Label>
             <SliderWithInput min={5} max={90} step={5} value={focus} onValueChange={setFocus} />
@@ -316,9 +329,14 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
               </motion.form>
             )}
           </div>
-        </div>
+          </TabsContent>
 
-        {!deleteExpanded && (
+          <TabsContent value="links">
+            <AmbientLinksTab />
+          </TabsContent>
+        </Tabs>
+
+        {tab === "general" && !deleteExpanded && (
           <DialogFooter>
             <Button variant="ghost" onClick={() => onOpenChange(false)}>
               Cancel
