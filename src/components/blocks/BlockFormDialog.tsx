@@ -145,6 +145,12 @@ export function BlockFormDialog({ open, onOpenChange, existingBlock, allBlocks }
           </DialogDescription>
         </DialogHeader>
 
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleSave();
+          }}
+        >
         <fieldset disabled={isLocked} className="space-y-5 disabled:opacity-50">
           <div className="grid grid-cols-2 gap-3">
             <div className="col-span-2 space-y-1.5">
@@ -281,13 +287,14 @@ export function BlockFormDialog({ open, onOpenChange, existingBlock, allBlocks }
         </fieldset>
 
         <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>
+          <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={handleSave} disabled={isLocked || saving}>
+          <Button type="submit" disabled={isLocked || saving}>
             {saving ? "Saving…" : isEdit ? "Save changes" : "Create block"}
           </Button>
         </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );
