@@ -19,7 +19,7 @@ const ADD_NEW_SENTINEL = "__add_new__";
  *  the dropdown itself, and a color swatch per category for quick recognition
  *  (matching the colors used in the analytics charts). */
 export function CategorySelect({ id = "category", value, onChange }: CategorySelectProps) {
-  const { customCategories, fetchCategories, addCategory } = useCategoriesStore();
+  const { customCategories, hiddenCategories, fetchCategories, addCategory } = useCategoriesStore();
   const [adding, setAdding] = useState(false);
   const [newName, setNewName] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -34,7 +34,13 @@ export function CategorySelect({ id = "category", value, onChange }: CategorySel
     if (adding) inputRef.current?.focus();
   }, [adding]);
 
-  const options = Array.from(new Set([...COMMON_CATEGORIES, ...customCategories, value].filter(Boolean)));
+  const options = Array.from(
+    new Set(
+      [...COMMON_CATEGORIES, ...customCategories, value].filter(
+        (c) => Boolean(c) && (c === value || !hiddenCategories.includes(c))
+      )
+    )
+  );
   const colorMap = buildColorMap(options);
 
   const commitNew = async () => {

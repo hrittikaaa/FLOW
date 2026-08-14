@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { SliderWithInput } from "@/components/ui/slider-input";
 import { AmbientLinksTab } from "@/components/settings/AmbientLinksTab";
+import { CategoriesTab } from "@/components/settings/CategoriesTab";
 import { useProfileStore } from "@/store/useProfileStore";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useNotifications } from "@/hooks/useNotifications";
@@ -19,7 +20,7 @@ interface SettingsDialogProps {
 }
 
 const CONFIRM_KEYWORD = "DELETE";
-type SettingsTab = "general" | "links";
+type SettingsTab = "general" | "links" | "categories";
 
 export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
   const { profile, updateDefaults } = useProfileStore();
@@ -131,7 +132,9 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
           <DialogDescription>
             {tab === "general"
               ? "These are the defaults used when creating a new focus block. You can still tweak them per block."
-              : "Manage your saved YouTube/YouTube Music links for ambient audio — pick from these when creating or editing a block."}
+              : tab === "links"
+              ? "Manage your saved YouTube/YouTube Music links for ambient audio — pick from these when creating or editing a block."
+              : "Manage the categories offered when creating or editing a block."}
           </DialogDescription>
         </DialogHeader>
 
@@ -139,6 +142,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
           <TabsList>
             <TabsTrigger value="general">General</TabsTrigger>
             <TabsTrigger value="links">Ambient Links</TabsTrigger>
+            <TabsTrigger value="categories">Categories</TabsTrigger>
           </TabsList>
 
           <TabsContent value="general" className="space-y-5">
@@ -333,6 +337,10 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
 
           <TabsContent value="links">
             <AmbientLinksTab />
+          </TabsContent>
+
+          <TabsContent value="categories">
+            <CategoriesTab />
           </TabsContent>
         </Tabs>
 
