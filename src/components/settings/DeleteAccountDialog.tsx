@@ -75,71 +75,81 @@ export function DeleteAccountDialog({ open, onOpenChange }: DeleteAccountDialogP
           </ul>
         </div>
 
-        {/* Confirmation input */}
-        <div className="space-y-2">
-          <Label htmlFor="delete-confirm-input" className="text-sm text-muted">
-            Type <span className="font-mono font-semibold text-paper">{CONFIRM_KEYWORD}</span> to confirm
-          </Label>
-          <Input
-            id="delete-confirm-input"
-            value={confirmText}
-            onChange={(e) => setConfirmText(e.target.value)}
-            placeholder={CONFIRM_KEYWORD}
-            disabled={deleting}
-            className={
-              confirmText.length > 0 && !isConfirmed
-                ? "border-danger/50 focus:ring-danger/40"
-                : ""
-            }
-            autoComplete="off"
-            spellCheck={false}
-          />
-        </div>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleDelete();
+          }}
+          className="contents"
+        >
+          {/* Confirmation input */}
+          <div className="space-y-2">
+            <Label htmlFor="delete-confirm-input" className="text-sm normal-case text-muted">
+              Type <span className="font-mono font-semibold text-paper">{CONFIRM_KEYWORD}</span> to confirm
+            </Label>
+            <Input
+              id="delete-confirm-input"
+              value={confirmText}
+              onChange={(e) => setConfirmText(e.target.value)}
+              placeholder={CONFIRM_KEYWORD}
+              disabled={deleting}
+              className={
+                confirmText.length > 0 && !isConfirmed
+                  ? "border-danger/50 focus:ring-danger/40"
+                  : ""
+              }
+              autoComplete="off"
+              spellCheck={false}
+              autoFocus
+            />
+          </div>
 
-        {/* Error state */}
-        <AnimatePresence>
-          {error && (
-            <motion.p
-              key="delete-error"
-              initial={{ opacity: 0, y: -4 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -4 }}
-              className="text-xs text-danger"
-            >
-              {error}
-            </motion.p>
-          )}
-        </AnimatePresence>
-
-        <DialogFooter>
-          <Button
-            id="delete-account-cancel-btn"
-            variant="ghost"
-            onClick={() => handleClose(false)}
-            disabled={deleting}
-          >
-            Cancel
-          </Button>
-          <Button
-            id="delete-account-confirm-btn"
-            variant="danger"
-            onClick={handleDelete}
-            disabled={!isConfirmed || deleting}
-            className="gap-2"
-          >
-            {deleting ? (
-              <>
-                <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                Deleting…
-              </>
-            ) : (
-              <>
-                <Trash2 className="h-3.5 w-3.5" />
-                Delete my account
-              </>
+          {/* Error state */}
+          <AnimatePresence>
+            {error && (
+              <motion.p
+                key="delete-error"
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -4 }}
+                className="text-xs text-danger"
+              >
+                {error}
+              </motion.p>
             )}
-          </Button>
-        </DialogFooter>
+          </AnimatePresence>
+
+          <DialogFooter>
+            <Button
+              id="delete-account-cancel-btn"
+              type="button"
+              variant="ghost"
+              onClick={() => handleClose(false)}
+              disabled={deleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              id="delete-account-confirm-btn"
+              type="submit"
+              variant="danger"
+              disabled={!isConfirmed || deleting}
+              className="gap-2"
+            >
+              {deleting ? (
+                <>
+                  <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                  Deleting…
+                </>
+              ) : (
+                <>
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Delete my account
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Timer, ArrowRight, X } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { GoogleIcon } from "@/components/auth/GoogleIcon";
@@ -163,9 +164,8 @@ export function AuthModal({ onClose }: AuthModalProps) {
                   </button>
                 )}
               </div>
-              <Input
+              <PasswordInput
                 id="auth-password"
-                type="password"
                 autoComplete={mode === "signin" ? "current-password" : "new-password"}
                 required
                 minLength={6}

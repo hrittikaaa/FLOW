@@ -12,6 +12,13 @@
   ::selection {
     background: rgba(242, 166, 90, 0.25);
   }
+  /* Hide Edge's built-in password reveal/clear icons — we render our own
+     eye toggle, and the native one sits in the same spot and fights with
+     it (and with password-manager extension icons) for the same corner. */
+  input[type="password"]::-ms-reveal,
+  input[type="password"]::-ms-clear {
+    display: none;
+  }
   :focus-visible {
     outline: 2px solid #f2a65a;
     outline-offset: 2px;
