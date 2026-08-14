@@ -8,6 +8,7 @@ import { useRoute } from "@/hooks/useRoute";
 import { AuthModal } from "@/components/auth/AuthModal";
 import { ResetPasswordScreen } from "@/components/auth/ResetPasswordScreen";
 import { MiniTimerPortal } from "@/components/timer/MiniTimerPortal";
+import { AutoPauseToast } from "@/components/layout/AutoPauseToast";
 import { Header } from "@/components/layout/Header";
 import { LiquidBackground } from "@/components/layout/LiquidBackground";
 import { LandingPage } from "@/components/landing/LandingPage";
@@ -42,7 +43,7 @@ function App() {
   const { init, session, initializing } = useAuthStore();
   const { fetchBlocks, subscribeRealtime, blocks } = useBlocksStore();
   const fetchProfile = useProfileStore((s) => s.fetchProfile);
-  const { activeBlockId, isRunning, pause, resume } = useTimerStore();
+  const { activeBlockId, isRunning, pause, resume, start } = useTimerStore();
   const { route, navigate } = useRoute();
   const [view, setView] = useState<AppView>("dashboard");
   const [viewDirection, setViewDirection] = useState(0);
@@ -142,27 +143,35 @@ function App() {
     setView(next);
   };
 
-  const handleSelectBlock = (block: FocusBlock) => {
-    // If a different block is actively running, pause it first and record its name
-    // so the TimerView can display a contextual warning to the user.
+  /** If a different block is actively running, warns the user and pauses it first —
+   *  called before starting/resuming a new block so the switch is announced up front
+   *  rather than discovered afterwards. Returns true if a switch-over happened. */
+  const warnAndPauseOther = (block: FocusBlock): boolean => {
     if (isRunning && activeBlockId && activeBlockId !== block.id) {
       const running = blocks.find((b) => b.id === activeBlockId);
       setPausedBlockName(running?.name ?? "Previous block");
       pause();
-    } else {
-      setPausedBlockName(null);
+      return true;
     }
+    setPausedBlockName(null);
+    return false;
+  };
+
+  const handleSelectBlock = (block: FocusBlock) => {
+    warnAndPauseOther(block);
     setSelectedBlockId(block.id);
     handleViewChange("timer");
   };
 
+  /** Start a planned block directly from the dashboard — no view switch needed. */
+  const handleQuickStartBlock = (block: FocusBlock) => {
+    warnAndPauseOther(block);
+    start(block.id);
+  };
+
   /** Resume a paused block directly from the dashboard — no view switch needed. */
   const handleResumeBlock = (block: FocusBlock) => {
-    // If a different block is running, pause it first (silently — no warning needed
-    // since the user is staying on the dashboard, not opening the timer view).
-    if (isRunning && activeBlockId && activeBlockId !== block.id) {
-      pause();
-    }
+    warnAndPauseOther(block);
     // Point the timer store at this block if it isn't already, then resume.
     useTimerStore.setState({ activeBlockId: block.id });
     resume();
@@ -189,14 +198,15 @@ function App() {
             exit="exit"
             transition={slideTransition}
           >
-            {view === "dashboard" && <BlocksDashboard onSelectBlock={handleSelectBlock} onResumeBlock={handleResumeBlock} />}
-            {view === "timer" && (
-              <TimerView
-                blockId={selectedBlockId}
-                onPickBlock={() => handleViewChange("dashboard")}
-                pausedBlockName={pausedBlockName}
-                onDismissPausedWarning={() => setPausedBlockName(null)}
+            {view === "dashboard" && (
+              <BlocksDashboard
+                onSelectBlock={handleSelectBlock}
+                onResumeBlock={handleResumeBlock}
+                onQuickStartBlock={handleQuickStartBlock}
               />
+            )}
+            {view === "timer" && (
+              <TimerView blockId={selectedBlockId} onPickBlock={() => handleViewChange("dashboard")} />
             )}
             {view === "analytics" && (
               <div className="flex flex-col gap-6">
@@ -252,6 +262,7 @@ function App() {
         onOpenChange={setManualEntryOpen}
         onLogged={() => setAnalyticsRefreshKey((k) => k + 1)}
       />
+      <AutoPauseToast pausedBlockName={pausedBlockName} onDismiss={() => setPausedBlockName(null)} />
       <Analytics />
     </div>
   );
