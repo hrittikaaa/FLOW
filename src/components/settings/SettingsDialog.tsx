@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -6,6 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { SliderWithInput } from "@/components/ui/slider-input";
 import { useProfileStore } from "@/store/useProfileStore";
 import { useNotifications } from "@/hooks/useNotifications";
+import { DeleteAccountDialog } from "@/components/settings/DeleteAccountDialog";
 
 interface SettingsDialogProps {
   open: boolean;
@@ -22,6 +24,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
   const [timePassedEnabled, setTimePassedEnabled] = useState(false);
   const [timePassedInterval, setTimePassedInterval] = useState(30);
   const [saving, setSaving] = useState(false);
+  const [deleteAccountOpen, setDeleteAccountOpen] = useState(false);
 
   const { supported, permission, enabled, enable, disable } = useNotifications();
   const [notifRequesting, setNotifRequesting] = useState(false);
@@ -78,6 +81,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
@@ -162,6 +166,29 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
           </div>
         </div>
 
+          {/* ── Danger Zone ─────────────────────────────────────────────── */}
+          <div className="rounded-lg border border-danger/30 bg-danger/5 px-4 py-3 space-y-2 backdrop-blur-sm">
+            <p className="text-xs font-semibold uppercase tracking-widest text-danger/70">Danger zone</p>
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-medium text-paper leading-tight">Delete account</p>
+                <p className="text-xs text-muted leading-snug mt-0.5">
+                  Permanently erase your account and all associated data.
+                </p>
+              </div>
+              <Button
+                id="delete-account-open-btn"
+                size="sm"
+                variant="danger"
+                onClick={() => setDeleteAccountOpen(true)}
+                className="shrink-0 gap-1.5"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Delete
+              </Button>
+            </div>
+          </div>
+
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
             Cancel
@@ -172,6 +199,9 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    <DeleteAccountDialog open={deleteAccountOpen} onOpenChange={setDeleteAccountOpen} />
+    </>
   );
 }
 

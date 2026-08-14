@@ -15,6 +15,7 @@ interface AuthState {
   sendPasswordReset: (email: string) => Promise<boolean>;
   updatePassword: (password: string) => Promise<boolean>;
   signOut: () => Promise<void>;
+  deleteAccount: () => Promise<{ success: boolean; error?: string }>;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -93,5 +94,18 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   signOut: async () => {
     await supabase.auth.signOut();
+  },
+
+  deleteAccount: async () => {
+    // Calls a Supabase database function `delete_user` which runs with elevated
+    // privileges (SECURITY DEFINER) to delete the calling user from auth.users.
+    // The function must be created in the Supabase SQL editor — see docs below.
+    const { error } = await supabase.rpc("delete_user");
+    if (error) {
+      return { success: false, error: error.message };
+    }
+    // Sign the user out locally after successful deletion.
+    await supabase.auth.signOut();
+    return { success: true };
   },
 }));
