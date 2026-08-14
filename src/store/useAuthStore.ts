@@ -11,6 +11,9 @@ interface AuthState {
   init: () => () => void; // returns an unsubscribe fn
   signInWithPassword: (email: string, password: string) => Promise<boolean>;
   signUpWithPassword: (email: string, password: string) => Promise<boolean>;
+  signInWithGoogle: () => Promise<boolean>;
+  sendPasswordReset: (email: string) => Promise<boolean>;
+  updatePassword: (password: string) => Promise<boolean>;
   signOut: () => Promise<void>;
 }
 
@@ -45,6 +48,42 @@ export const useAuthStore = create<AuthState>((set) => ({
   signUpWithPassword: async (email, password) => {
     set({ authError: null });
     const { error } = await supabase.auth.signUp({ email, password });
+    if (error) {
+      set({ authError: error.message });
+      return false;
+    }
+    return true;
+  },
+
+  signInWithGoogle: async () => {
+    set({ authError: null });
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: `${window.location.origin}/app` },
+    });
+    if (error) {
+      set({ authError: error.message });
+      return false;
+    }
+    // Browser is redirected to Google; nothing more to do here.
+    return true;
+  },
+
+  sendPasswordReset: async (email) => {
+    set({ authError: null });
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    if (error) {
+      set({ authError: error.message });
+      return false;
+    }
+    return true;
+  },
+
+  updatePassword: async (password) => {
+    set({ authError: null });
+    const { error } = await supabase.auth.updateUser({ password });
     if (error) {
       set({ authError: error.message });
       return false;
