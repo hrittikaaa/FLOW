@@ -205,25 +205,6 @@ export function BlockFormDialog({ open, onOpenChange, existingBlock, allBlocks }
             {youtubeUrlText.trim().length > 0 && !draft.ambientYoutubeUrl && (
               <p className="text-xs text-danger">That doesn't look like a valid YouTube link.</p>
             )}
-            {draft.ambientYoutubeUrl && (
-              <div className="space-y-1.5 pt-1">
-                <div className="flex items-center justify-between">
-                  <Label className="normal-case">Volume</Label>
-                  <span className="tabular font-mono text-sm text-paper">{draft.ambientVolume}%</span>
-                </div>
-                <SliderWithInput
-                  min={0}
-                  max={100}
-                  step={1}
-                  unit="%"
-                  value={draft.ambientVolume}
-                  onValueChange={(v) => setDraft((d) => ({ ...d, ambientVolume: v }))}
-                />
-              </div>
-            )}
-            <p className="text-xs text-muted">
-              Plays during focus segments, paused on breaks. Some videos disable playback outside YouTube . You'll see an error in the timer if that link doesn't work.
-            </p>
           </div>
 
           <div className="space-y-1.5">

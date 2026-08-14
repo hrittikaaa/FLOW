@@ -9,7 +9,6 @@ import { BlockRing } from "@/components/timer/BlockRing";
 import { TimerFace } from "@/components/timer/TimerFace";
 import { TimerControls } from "@/components/timer/TimerControls";
 import { TimelineStrip } from "@/components/timer/TimelineStrip";
-import { AmbientYoutubePlayer } from "@/components/timer/AmbientYoutubePlayer";
 import { AmbientPlayerControls } from "@/components/timer/AmbientPlayerControls";
 import { TaskList } from "@/components/blocks/TaskList";
 import { BlockFormDialog } from "@/components/blocks/BlockFormDialog";
@@ -96,11 +95,6 @@ export function TimerView({ blockId, onPickBlock }: TimerViewProps) {
   return (
     <div className="mx-auto grid max-w-4xl grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
       <Card className="relative flex flex-col items-center gap-6 p-8">
-        <AmbientYoutubePlayer
-          url={block.ambientYoutubeUrl}
-          volume={block.ambientVolume}
-          kind={running ? currentSegment?.kind ?? null : null}
-        />
 
         <div className="absolute right-5 top-5 flex items-center gap-2">
           {isPipSupported() && (

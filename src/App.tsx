@@ -8,6 +8,7 @@ import { useRoute } from "@/hooks/useRoute";
 import { AuthModal } from "@/components/auth/AuthModal";
 import { ResetPasswordScreen } from "@/components/auth/ResetPasswordScreen";
 import { MiniTimerPortal } from "@/components/timer/MiniTimerPortal";
+import { AmbientYoutubePlayer } from "@/components/timer/AmbientYoutubePlayer";
 import { AutoPauseToast } from "@/components/layout/AutoPauseToast";
 import { Header } from "@/components/layout/Header";
 import { LiquidBackground } from "@/components/layout/LiquidBackground";
@@ -186,6 +187,7 @@ function App() {
     <div className="min-h-screen">
       <LiquidBackground />
       <MiniTimerPortal />
+      <AmbientYoutubePlayer />
       <Header view={view} onViewChange={handleViewChange} />
       <main className="mx-auto max-w-6xl overflow-x-clip px-4 py-8 sm:px-6">
         <AnimatePresence mode="wait" custom={viewDirection}>
