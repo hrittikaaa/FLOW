@@ -477,7 +477,7 @@ export function LandingPage({ onGetStarted }: LandingPageProps) {
             <FeatureCard
               icon={<Zap className="h-5 w-5" />}
               title="Real-time sync"
-              description="Start a block on your laptop, glance at progress on your phone. Your timer state syncs instantly — no refresh needed."
+              description="Start a block on your laptop, check in on your phone. Timer state syncs instantly, no refresh needed."
               accent="rest"
             />
           </StaggerSection>

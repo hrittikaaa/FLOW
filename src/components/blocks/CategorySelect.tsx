@@ -48,7 +48,7 @@ export function CategorySelect({ id = "category", value, onChange }: CategorySel
       setNewName("");
       setAdding(false);
     } else {
-      setError("Couldn't add that category — try again.");
+      setError("Couldn't add that category. Give it another try.");
     }
   };
 

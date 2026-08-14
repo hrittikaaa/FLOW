@@ -132,7 +132,7 @@ function completeCurrentSegment(blockId: string): boolean {
       if (nextSegment.kind === "focus") {
         // Break segment done → focus starts
         playChime("break");
-        fireNotification("☕ Break over — time to focus!", {
+        fireNotification("☕ Break's over. Time to focus!", {
           body: `Next up: ${nextSegment.durationMinutes} min focus session in "${block.name}".`,
           tag: `pf-segment-${blockId}`,
         });
@@ -140,7 +140,7 @@ function completeCurrentSegment(blockId: string): boolean {
         // Focus segment done → break starts
         playChime("focus");
         fireNotification("🎉 Focus session done!", {
-          body: `Take a ${nextSegment.durationMinutes} min ${nextSegment.kind === "long_break" ? "long break" : "break"} — you've earned it.`,
+          body: `Take a ${nextSegment.durationMinutes} min ${nextSegment.kind === "long_break" ? "long break" : "break"}. You've earned it!`,
           tag: `pf-segment-${blockId}`,
         });
       }

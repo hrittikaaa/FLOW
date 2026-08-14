@@ -30,7 +30,7 @@ function endOfWeek(ws: Date) {
 function formatWeekRange(ws: Date) {
   const we = endOfWeek(ws);
   const opts: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" };
-  return `${ws.toLocaleDateString(undefined, opts)} – ${we.toLocaleDateString(undefined, opts)}`;
+  return `${ws.toLocaleDateString(undefined, opts)} to ${we.toLocaleDateString(undefined, opts)}`;
 }
 
 interface WeeklyChartProps {
@@ -144,7 +144,7 @@ export function WeeklyChart({ refreshKey = 0 }: WeeklyChartProps) {
           <div className="flex h-56 items-center justify-center text-sm text-muted">Loading…</div>
         ) : totalHours === 0 ? (
           <div className="flex h-56 flex-col items-center justify-center gap-1 text-center text-sm text-muted">
-            <p>No completed focus sessions for this week.</p>
+            <p>No focus sessions logged this week.</p>
             <p className="text-xs">Finish a focus segment and it will show up here.</p>
           </div>
         ) : (

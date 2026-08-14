@@ -190,9 +190,9 @@ export function BlockCard({ block, onStart, onEdit, onDelete, onRestart, isDragg
           >
             {block.status === "active" ? <Timer className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
             {block.status === "active"
-              ? "Running — open timer"
+              ? "Open timer"
               : block.status === "paused"
-              ? "Resume in timer"
+              ? "Resume"
               : block.status === "completed"
               ? "View"
               : "Start"}

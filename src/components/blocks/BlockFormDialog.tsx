@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -59,7 +59,15 @@ export function BlockFormDialog({ open, onOpenChange, existingBlock, allBlocks }
   // surfaces the length/cadence controls when that account-level switch is on.
   const longBreaksEnabled = profile?.longBreaksEnabled ?? true;
 
+  // Track the previous `open` value so we only reset state when the dialog
+  // transitions from closed -> open. Skipping the reset on other re-renders
+  // (e.g. tab/window focus changes) keeps inputs intact while editing.
+  const prevOpenRef = useRef(false);
   useEffect(() => {
+    const justOpened = open && !prevOpenRef.current;
+    prevOpenRef.current = open;
+    if (!justOpened) return;
+
     if (existingBlock) {
       setDraft({
         name: existingBlock.name,
@@ -132,8 +140,8 @@ export function BlockFormDialog({ open, onOpenChange, existingBlock, allBlocks }
           <DialogTitle>{isEdit ? "Edit focus block" : "New focus block"}</DialogTitle>
           <DialogDescription>
             {isLocked
-              ? "This block is running in strict mode — pause it or wait until it finishes to change the plan."
-              : "Set a total time goal and Flow will divide it into focus and break cycles automatically."}
+              ? "This block is running in strict mode. Pause it first, or wait until it finishes, to make changes."
+              : "Set a total time goal and Flow will split it into focus and break sessions for you."}
           </DialogDescription>
         </DialogHeader>
 
@@ -236,7 +244,7 @@ export function BlockFormDialog({ open, onOpenChange, existingBlock, allBlocks }
           <div className="flex items-center justify-between rounded-lg border border-glass-border bg-white/[0.02] px-4 py-3 backdrop-blur-sm">
             <div>
               <p className="text-sm font-medium text-paper">Strict mode</p>
-              <p className="text-xs text-muted">Locks editing and warns before you leave the tab once started.</p>
+              <p className="text-xs text-muted">Locks settings while running and gives you a heads-up if you try to close the tab.</p>
             </div>
             <Switch
               checked={draft.strictMode}
@@ -260,12 +268,12 @@ export function BlockFormDialog({ open, onOpenChange, existingBlock, allBlocks }
             </div>
           ) : (
             <div className="space-y-1.5">
-              <Label htmlFor="goals">Goals (one per line)</Label>
+              <Label htmlFor="goals">Goals</Label>
               <Textarea
                 id="goals"
                 value={goalsText}
                 onChange={(e) => setGoalsText(e.target.value)}
-                placeholder={"Outline chapter 3\nRespond to reviewer comments\nUpdate bibliography"}
+                placeholder={"Outline chapter 3\nReply to reviewer comments\nUpdate bibliography"}
                 rows={3}
               />
             </div>
