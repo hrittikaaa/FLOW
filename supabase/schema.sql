@@ -68,7 +68,8 @@ create table if not exists public.focus_blocks (
   long_break_minutes int not null default 15 check (long_break_minutes >= 0),
   sessions_before_long_break int not null default 4 check (sessions_before_long_break > 0),
   strict_mode boolean not null default false,
-  ambient_sound text default 'none',                -- 'none' | 'rain' | 'white-noise' | 'lofi'
+  ambient_youtube_url text,
+  ambient_volume int not null default 50 check (ambient_volume between 0 and 100),
   status text not null default 'planned'            -- 'planned' | 'active' | 'paused' | 'completed' | 'archived'
     check (status in ('planned', 'active', 'paused', 'completed', 'archived')),
   -- live timer state, persisted so it can be resumed from any device
@@ -82,8 +83,10 @@ create table if not exists public.focus_blocks (
   updated_at timestamptz not null default now()
 );
 
--- Safe to re-run against an existing database that predates this column.
+-- Safe to re-run against an existing database that predates these columns.
 alter table public.focus_blocks add column if not exists queue_position int;
+alter table public.focus_blocks add column if not exists ambient_youtube_url text;
+alter table public.focus_blocks add column if not exists ambient_volume int not null default 50 check (ambient_volume between 0 and 100);
 
 create index if not exists idx_focus_blocks_user_id on public.focus_blocks (user_id);
 create index if not exists idx_focus_blocks_status on public.focus_blocks (user_id, status);
@@ -167,6 +170,23 @@ create table if not exists public.categories (
 create index if not exists idx_categories_user_id on public.categories (user_id);
 
 -- ---------------------------------------------------------
+-- 7. ambient_links
+--    User-saved YouTube/YouTube Music links for ambient audio,
+--    so a block's "Background Audio" link can be picked from a
+--    list instead of pasted every time.
+-- ---------------------------------------------------------
+create table if not exists public.ambient_links (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users (id) on delete cascade,
+  label text not null,
+  url text not null,
+  created_at timestamptz not null default now(),
+  unique (user_id, url)
+);
+
+create index if not exists idx_ambient_links_user_id on public.ambient_links (user_id);
+
+-- ---------------------------------------------------------
 -- updated_at auto-touch trigger (generic, reused by tables that have the column)
 -- ---------------------------------------------------------
 create or replace function public.touch_updated_at()
@@ -199,82 +219,141 @@ alter table public.block_segments enable row level security;
 alter table public.tasks enable row level security;
 alter table public.focus_sessions enable row level security;
 alter table public.categories enable row level security;
+alter table public.ambient_links enable row level security;
+
+-- Policies have no `IF NOT EXISTS` / `CREATE OR REPLACE` in Postgres, so each
+-- is preceded by a `DROP POLICY IF EXISTS` — same re-run-safe spirit as the
+-- `DROP TRIGGER IF EXISTS` pattern used above.
 
 -- profiles: a user can only read/update their own row
+drop policy if exists "profiles_select_own" on public.profiles;
 create policy "profiles_select_own" on public.profiles
   for select using (auth.uid() = id);
 
+drop policy if exists "profiles_update_own" on public.profiles;
 create policy "profiles_update_own" on public.profiles
   for update using (auth.uid() = id);
 
 -- focus_blocks: full CRUD, own rows only
+drop policy if exists "focus_blocks_select_own" on public.focus_blocks;
 create policy "focus_blocks_select_own" on public.focus_blocks
   for select using (auth.uid() = user_id);
 
+drop policy if exists "focus_blocks_insert_own" on public.focus_blocks;
 create policy "focus_blocks_insert_own" on public.focus_blocks
   for insert with check (auth.uid() = user_id);
 
+drop policy if exists "focus_blocks_update_own" on public.focus_blocks;
 create policy "focus_blocks_update_own" on public.focus_blocks
   for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
+drop policy if exists "focus_blocks_delete_own" on public.focus_blocks;
 create policy "focus_blocks_delete_own" on public.focus_blocks
   for delete using (auth.uid() = user_id);
 
 -- block_segments: scoped through the parent block's ownership
+drop policy if exists "block_segments_select_own" on public.block_segments;
 create policy "block_segments_select_own" on public.block_segments
   for select using (
     exists (select 1 from public.focus_blocks b where b.id = block_id and b.user_id = auth.uid())
   );
 
+drop policy if exists "block_segments_insert_own" on public.block_segments;
 create policy "block_segments_insert_own" on public.block_segments
   for insert with check (
     exists (select 1 from public.focus_blocks b where b.id = block_id and b.user_id = auth.uid())
   );
 
+drop policy if exists "block_segments_update_own" on public.block_segments;
 create policy "block_segments_update_own" on public.block_segments
   for update using (
     exists (select 1 from public.focus_blocks b where b.id = block_id and b.user_id = auth.uid())
   );
 
+drop policy if exists "block_segments_delete_own" on public.block_segments;
 create policy "block_segments_delete_own" on public.block_segments
   for delete using (
     exists (select 1 from public.focus_blocks b where b.id = block_id and b.user_id = auth.uid())
   );
 
 -- tasks: full CRUD, own rows only
+drop policy if exists "tasks_select_own" on public.tasks;
 create policy "tasks_select_own" on public.tasks
   for select using (auth.uid() = user_id);
 
+drop policy if exists "tasks_insert_own" on public.tasks;
 create policy "tasks_insert_own" on public.tasks
   for insert with check (auth.uid() = user_id);
 
+drop policy if exists "tasks_update_own" on public.tasks;
 create policy "tasks_update_own" on public.tasks
   for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
+drop policy if exists "tasks_delete_own" on public.tasks;
 create policy "tasks_delete_own" on public.tasks
   for delete using (auth.uid() = user_id);
 
 -- focus_sessions: insert + select own only (append-only log, no update/delete by design)
+drop policy if exists "focus_sessions_select_own" on public.focus_sessions;
 create policy "focus_sessions_select_own" on public.focus_sessions
   for select using (auth.uid() = user_id);
 
+drop policy if exists "focus_sessions_insert_own" on public.focus_sessions;
 create policy "focus_sessions_insert_own" on public.focus_sessions
   for insert with check (auth.uid() = user_id);
 
 -- categories: full CRUD, own rows only
+drop policy if exists "categories_select_own" on public.categories;
 create policy "categories_select_own" on public.categories
   for select using (auth.uid() = user_id);
 
+drop policy if exists "categories_insert_own" on public.categories;
 create policy "categories_insert_own" on public.categories
   for insert with check (auth.uid() = user_id);
 
+drop policy if exists "categories_delete_own" on public.categories;
 create policy "categories_delete_own" on public.categories
+  for delete using (auth.uid() = user_id);
+
+-- ambient_links: select/insert/delete own rows only (no rename support)
+drop policy if exists "ambient_links_select_own" on public.ambient_links;
+create policy "ambient_links_select_own" on public.ambient_links
+  for select using (auth.uid() = user_id);
+
+drop policy if exists "ambient_links_insert_own" on public.ambient_links;
+create policy "ambient_links_insert_own" on public.ambient_links
+  for insert with check (auth.uid() = user_id);
+
+drop policy if exists "ambient_links_delete_own" on public.ambient_links;
+create policy "ambient_links_delete_own" on public.ambient_links
   for delete using (auth.uid() = user_id);
 
 -- =========================================================
 -- Realtime (optional but recommended for cross-device sync)
 -- Enable these in Database > Replication, or via SQL:
 -- =========================================================
-alter publication supabase_realtime add table public.focus_blocks;
-alter publication supabase_realtime add table public.block_segments;
-alter publication supabase_realtime add table public.tasks;
+-- `ALTER PUBLICATION ... ADD TABLE` has no `IF NOT EXISTS` guard either, and
+-- errors if the table's already a member — so check pg_publication_tables first.
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'focus_blocks'
+  ) then
+    alter publication supabase_realtime add table public.focus_blocks;
+  end if;
+
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'block_segments'
+  ) then
+    alter publication supabase_realtime add table public.block_segments;
+  end if;
+
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'tasks'
+  ) then
+    alter publication supabase_realtime add table public.tasks;
+  end if;
+end $$;

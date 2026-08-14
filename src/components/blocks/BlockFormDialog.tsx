@@ -9,17 +9,12 @@ import { SliderWithInput } from "@/components/ui/slider-input";
 import { TimelineStrip } from "@/components/timer/TimelineStrip";
 import { TaskList } from "@/components/blocks/TaskList";
 import { CategorySelect } from "@/components/blocks/CategorySelect";
+import { SavedAmbientLinksMenu } from "@/components/blocks/SavedAmbientLinksMenu";
 import { useBlocksStore } from "@/store/useBlocksStore";
 import { useProfileStore } from "@/store/useProfileStore";
 import { generateSessionPlan } from "@/lib/sessionCalculator";
-import type { AmbientSound, BlockDraft, FocusBlock } from "@/types";
-
-const AMBIENT_OPTIONS: { value: AmbientSound; label: string }[] = [
-  { value: "none", label: "None" },
-  { value: "white-noise", label: "White noise" },
-  { value: "rain", label: "Rain" },
-  { value: "lofi", label: "Lo-fi hum" },
-];
+import { parseYoutubeInput } from "@/lib/youtube";
+import type { BlockDraft, FocusBlock } from "@/types";
 
 interface BlockFormDialogProps {
   open: boolean;
@@ -37,7 +32,8 @@ const emptyDraft: BlockDraft = {
   longBreakMinutes: 15,
   sessionsBeforeLongBreak: 4,
   strictMode: false,
-  ambientSound: "none",
+  ambientYoutubeUrl: null,
+  ambientVolume: 50,
   taskTitles: [],
 };
 
@@ -52,6 +48,10 @@ export function BlockFormDialog({ open, onOpenChange, existingBlock, allBlocks }
   const [draft, setDraft] = useState<BlockDraft>(emptyDraft);
   const [goalsText, setGoalsText] = useState("");
   const [saving, setSaving] = useState(false);
+  // Raw text of the ambient-audio URL field, tracked separately from
+  // draft.ambientYoutubeUrl so the user can type/paste freely — it's only
+  // parsed (and the draft updated) once it resolves to a valid link.
+  const [youtubeUrlText, setYoutubeUrlText] = useState("");
 
   const isEdit = Boolean(existingBlock);
   const isLocked = Boolean(existingBlock?.strictMode && existingBlock?.status === "active");
@@ -78,9 +78,11 @@ export function BlockFormDialog({ open, onOpenChange, existingBlock, allBlocks }
         longBreakMinutes: existingBlock.longBreakMinutes,
         sessionsBeforeLongBreak: existingBlock.sessionsBeforeLongBreak,
         strictMode: existingBlock.strictMode,
-        ambientSound: existingBlock.ambientSound,
+        ambientYoutubeUrl: existingBlock.ambientYoutubeUrl,
+        ambientVolume: existingBlock.ambientVolume,
         taskTitles: [],
       });
+      setYoutubeUrlText(existingBlock.ambientYoutubeUrl ?? "");
     } else {
       const defaultLongBreak = profile?.longBreaksEnabled === false ? 0 : profile?.defaultLongBreakMinutes ?? emptyDraft.longBreakMinutes;
       setDraft({
@@ -91,6 +93,7 @@ export function BlockFormDialog({ open, onOpenChange, existingBlock, allBlocks }
         sessionsBeforeLongBreak: profile?.sessionsBeforeLongBreak ?? emptyDraft.sessionsBeforeLongBreak,
       });
       setGoalsText("");
+      setYoutubeUrlText("");
     }
   }, [existingBlock, open, profile]);
 
@@ -162,25 +165,65 @@ export function BlockFormDialog({ open, onOpenChange, existingBlock, allBlocks }
                 placeholder="e.g. Thesis writing sprint"
               />
             </div>
-            <CategorySelect
-              value={draft.category}
-              onChange={(category) => setDraft((d) => ({ ...d, category }))}
-            />
-            <div className="space-y-1.5">
-              <Label htmlFor="ambient">Ambient sound</Label>
-              <select
-                id="ambient"
-                value={draft.ambientSound}
-                onChange={(e) => setDraft((d) => ({ ...d, ambientSound: e.target.value as AmbientSound }))}
-                className="glass-field h-10 w-full rounded-lg px-3 text-sm text-paper focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus/50"
-              >
-                {AMBIENT_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value} className="bg-ink-raised">
-                    {o.label}
-                  </option>
-                ))}
-              </select>
+            <div className="col-span-2">
+              <CategorySelect
+                value={draft.category}
+                onChange={(category) => setDraft((d) => ({ ...d, category }))}
+              />
             </div>
+          </div>
+
+          <div className="space-y-1.5 rounded-lg border border-glass-border bg-white/[0.02] p-4 backdrop-blur-sm">
+            <Label htmlFor="ambient-url">Background Audio</Label>
+            <div className="flex gap-2">
+              <Input
+                id="ambient-url"
+                value={youtubeUrlText}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setYoutubeUrlText(value);
+                  const trimmed = value.trim();
+                  if (!trimmed) {
+                    setDraft((d) => ({ ...d, ambientYoutubeUrl: null }));
+                  } else if (parseYoutubeInput(trimmed)) {
+                    setDraft((d) => ({ ...d, ambientYoutubeUrl: trimmed }));
+                  } else {
+                    setDraft((d) => ({ ...d, ambientYoutubeUrl: null }));
+                  }
+                }}
+                placeholder="Paste a YouTube or YouTube Music video/playlist link"
+                className="flex-1"
+              />
+              <SavedAmbientLinksMenu
+                currentUrl={draft.ambientYoutubeUrl}
+                onSelect={(url) => {
+                  setYoutubeUrlText(url);
+                  setDraft((d) => ({ ...d, ambientYoutubeUrl: url }));
+                }}
+              />
+            </div>
+            {youtubeUrlText.trim().length > 0 && !draft.ambientYoutubeUrl && (
+              <p className="text-xs text-danger">That doesn't look like a valid YouTube link.</p>
+            )}
+            {draft.ambientYoutubeUrl && (
+              <div className="space-y-1.5 pt-1">
+                <div className="flex items-center justify-between">
+                  <Label className="normal-case">Volume</Label>
+                  <span className="tabular font-mono text-sm text-paper">{draft.ambientVolume}%</span>
+                </div>
+                <SliderWithInput
+                  min={0}
+                  max={100}
+                  step={1}
+                  unit="%"
+                  value={draft.ambientVolume}
+                  onValueChange={(v) => setDraft((d) => ({ ...d, ambientVolume: v }))}
+                />
+              </div>
+            )}
+            <p className="text-xs text-muted">
+              Plays during focus segments, paused on breaks. Some videos disable playback outside YouTube . You'll see an error in the timer if that link doesn't work.
+            </p>
           </div>
 
           <div className="space-y-1.5">
