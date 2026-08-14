@@ -136,8 +136,44 @@ export const useBlocksStore = create<BlocksState>((set, get) => ({
       return;
     }
 
+    const now = Date.now();
     const blocks = (blockRows ?? []).map((row) => rowToBlock(row, segmentRows ?? [], taskRows ?? []));
-    set({ blocks, loading: false });
+
+    // On a fresh page load the timer store always starts paused.
+    // Any block the DB still thinks is "active" must be reconciled to "paused"
+    // so the dashboard doesn't misleadingly show "Open timer / active".
+    // We also credit the wall-clock gap since lastStartedAt so progress is
+    // accurate when the user hits Resume.
+    const activeOnLoad = blocks.filter((b) => b.status === "active");
+    const reconciled = blocks.map((b) => {
+      if (b.status !== "active") return b;
+      const gapSeconds = b.lastStartedAt
+        ? Math.max(0, Math.floor((now - new Date(b.lastStartedAt).getTime()) / 1000))
+        : 0;
+      return {
+        ...b,
+        status: "paused" as const,
+        elapsedSecondsInSegment: b.elapsedSecondsInSegment + gapSeconds,
+        lastStartedAt: null,
+      };
+    });
+
+    set({ blocks: reconciled, loading: false });
+
+    // Persist the reconciled state back to Supabase (fire-and-forget).
+    for (const b of activeOnLoad) {
+      const patched = reconciled.find((r) => r.id === b.id);
+      if (!patched) continue;
+      recentLocalRuntimeWrites.set(b.id, now);
+      supabase
+        .from("focus_blocks")
+        .update({
+          status: "paused",
+          elapsed_seconds_in_segment: patched.elapsedSecondsInSegment,
+          last_started_at: null,
+        })
+        .eq("id", b.id);
+    }
   },
 
   createBlock: async (draft) => {
