@@ -143,9 +143,9 @@ export function BlocksDashboard({ onSelectBlock }: BlocksDashboardProps) {
               </div>
             ) : filtered.length === 0 ? (
               <div className="glass-panel flex flex-col items-center justify-center gap-2 px-6 py-16 text-center">
-                <p className="font-display text-lg text-paper">No focus blocks yet</p>
+                <p className="font-display text-lg text-paper">Nothing here yet</p>
                 <p className="max-w-xs text-sm text-muted">
-                  Create one to set a time goal — Flow will lay out the focus and break cycles for you.
+                  Create a block to set a time goal. Flow will break it into focus and rest cycles for you.
                 </p>
                 <Button className="mt-2" onClick={() => setFormOpen(true)}>
                   <Plus className="h-4 w-4" /> Create your first block

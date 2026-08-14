@@ -64,10 +64,10 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
   };
 
   const notifLabel = () => {
-    if (!supported) return "Not supported in this browser";
-    if (permission === "denied") return "Blocked by browser — allow in site settings";
-    if (enabled) return "Enabled — you'll get alerts on segment & block completion";
-    return "Disabled";
+    if (!supported) return "Your browser doesn't support desktop notifications.";
+    if (permission === "denied") return "Blocked by your browser. You can allow it in your site settings.";
+    if (enabled) return "On. You'll get a ping when a segment or block finishes.";
+    return "Off";
   };
 
   const notifBtnLabel = () => {
@@ -83,7 +83,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
         <DialogHeader>
           <DialogTitle>Default ratio</DialogTitle>
           <DialogDescription>
-            Used to pre-fill new focus blocks. You can still override the ratio per block.
+            These are the defaults used when creating a new focus block. You can still tweak them per block.
           </DialogDescription>
         </DialogHeader>
 
@@ -102,7 +102,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
               <div>
                 <Label className="leading-tight">Long breaks</Label>
                 <p className="text-xs text-muted leading-snug">
-                  When on, new blocks get a longer break every few sessions. Shown in each block's timer setup.
+                  Adds a longer break every few sessions on new blocks. You can adjust the length and timing below.
                 </p>
               </div>
               <Switch checked={longBreaksEnabled} onCheckedChange={setLongBreaksEnabled} />
@@ -127,7 +127,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
               <div>
                 <Label className="leading-tight">Timer passed notification</Label>
                 <p className="text-xs text-muted leading-snug">
-                  Get a reminder every so often while a timer is running, regardless of segment length.
+                  Ping you every so often while the timer is running, no matter how long the segment is.
                 </p>
               </div>
               <Switch checked={timePassedEnabled} onCheckedChange={setTimePassedEnabled} />

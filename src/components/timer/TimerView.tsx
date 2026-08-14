@@ -127,7 +127,7 @@ export function TimerView({ blockId, onPickBlock, pausedBlockName, onDismissPaus
             >
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
               <span className="flex-1">
-                <span className="font-medium text-amber-200">"{pausedBlockName}"</span> is paused — you can resume it again from the Blocks tab.
+                <span className="font-medium text-amber-200">"{pausedBlockName}"</span> was paused. You can pick it back up from the Blocks tab.
               </span>
               <button
                 onClick={onDismissPausedWarning}
@@ -142,7 +142,7 @@ export function TimerView({ blockId, onPickBlock, pausedBlockName, onDismissPaus
         {block.strictMode && block.status === "active" && (
           <div className="flex w-full items-center gap-2 rounded-lg border border-focus/30 bg-focus/10 px-3 py-2 text-xs text-focus backdrop-blur-sm">
             <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-            <span>Strict mode — skip/restart locked, segments auto-start, and you'll be warned before closing this tab.</span>
+            <span>Strict mode is on. Skip/restart are locked, segments auto-start, and you'll get a warning if you close this tab.</span>
           </div>
         )}
 
@@ -152,9 +152,9 @@ export function TimerView({ blockId, onPickBlock, pausedBlockName, onDismissPaus
             animate={{ opacity: 1 }}
             className="w-full rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-center text-xs text-danger backdrop-blur-sm"
           >
-            Welcome back — your focus block is still running.{" "}
+            Welcome back! Your focus block is still running.{" "}
             <button onClick={clearStrayed} className="underline underline-offset-2">
-              Dismiss
+              Got it
             </button>
           </motion.div>
         )}

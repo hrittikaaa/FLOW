@@ -169,7 +169,7 @@ export function MonthlyChart({ refreshKey = 0 }: MonthlyChartProps) {
           <div className="flex h-56 items-center justify-center text-sm text-muted">Loading…</div>
         ) : totalHours === 0 ? (
           <div className="flex h-56 flex-col items-center justify-center gap-1 text-center text-sm text-muted">
-            <p>No completed focus sessions for this month.</p>
+            <p>No focus sessions logged this month.</p>
             <p className="text-xs">Finish a focus segment and it will show up here.</p>
           </div>
         ) : (

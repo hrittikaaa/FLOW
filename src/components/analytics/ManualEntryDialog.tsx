@@ -51,7 +51,7 @@ export function ManualEntryDialog({ open, onOpenChange, onLogged }: ManualEntryD
     const ok = await logManualSession({ category, durationMinutes: totalMinutes, occurredAt, note });
     setSaving(false);
     if (!ok) {
-      setError("Couldn't save that entry — try again.");
+      setError("Couldn't save that entry. Give it another try.");
       return;
     }
     reset();
@@ -65,7 +65,7 @@ export function ManualEntryDialog({ open, onOpenChange, onLogged }: ManualEntryD
         <DialogHeader>
           <DialogTitle>Log focus time</DialogTitle>
           <DialogDescription>
-            Add focus time you tracked outside the app — it'll show up alongside your other sessions in analytics.
+            Log any focus time you tracked outside the app. It'll show up right alongside your other sessions.
           </DialogDescription>
         </DialogHeader>
 
