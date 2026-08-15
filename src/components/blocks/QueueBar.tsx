@@ -1,20 +1,28 @@
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Coffee, GripVertical, ListChecks, Plus, X } from "lucide-react";
+import { Coffee, GripVertical, ListChecks, Play, Plus, X } from "lucide-react";
 import { useQueueStore } from "@/store/useQueueStore";
 import { useBlocksStore } from "@/store/useBlocksStore";
 import { projectQueueFinish } from "@/lib/queue";
 import { formatMinutesAsHours, formatTimeOfDay } from "@/lib/utils";
+import { BreakTimerModal } from "@/components/timer/BreakTimerModal";
+
+interface QueueBarProps {
+  /** Called when the user clicks a block pill — scroll + highlight that card. */
+  onHighlightBlock?: (blockId: string) => void;
+}
 
 /** Sticky summary + editor for the user's queue: drag to reorder, insert breaks
  *  between blocks, and see the combined remaining time and a projected finish. */
-export function QueueBar() {
+export function QueueBar({ onHighlightBlock }: QueueBarProps) {
   const { items, fetchQueue, removeAt, addBreak, updateBreakMinutes, reorder, clear } = useQueueStore();
   const blocks = useBlocksStore((s) => s.blocks);
   const blocksById = new Map(blocks.map((b) => [b.id, b]));
 
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const draggedIndexRef = useRef<number | null>(null);
+  /** Minutes for an active break, or null when no break is running. */
+  const [activeBreakMinutes, setActiveBreakMinutes] = useState<number | null>(null);
 
   useEffect(() => {
     fetchQueue();
@@ -42,6 +50,7 @@ export function QueueBar() {
   }
 
   return (
+    <>
     <motion.div
       initial={{ opacity: 0, y: -8 }}
       animate={{ opacity: 1, y: 0 }}
@@ -89,9 +98,14 @@ export function QueueBar() {
                   }`}
                 >
                   <GripVertical className="h-3 w-3 shrink-0 text-muted" />
-                  <span className="max-w-[10rem] truncate">
+                  {/* Clicking the name highlights the matching BlockCard */}
+                  <button
+                    onClick={() => onHighlightBlock?.(item.blockId)}
+                    title="Scroll to this block"
+                    className="max-w-[10rem] truncate hover:text-paper transition-colors text-left"
+                  >
                     {index + 1}. {blocksById.get(item.blockId)?.name ?? "Deleted block"}
-                  </span>
+                  </button>
                   <button
                     onClick={() => removeAt(index)}
                     title="Remove from queue"
@@ -123,8 +137,17 @@ export function QueueBar() {
                     value={item.minutes}
                     onChange={(e) => updateBreakMinutes(item.id, Number(e.target.value) || 1)}
                     className="w-8 border-none bg-transparent text-right tabular-nums text-rest focus-visible:outline-none"
+                    onClick={(e) => e.stopPropagation()}
                   />
                   <span>m break</span>
+                  {/* Start-break button */}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setActiveBreakMinutes(item.minutes); }}
+                    title="Start this break"
+                    className="ml-0.5 flex items-center justify-center rounded-full p-0.5 text-rest/70 hover:bg-rest/20 hover:text-rest transition-colors"
+                  >
+                    <Play className="h-2.5 w-2.5" />
+                  </button>
                   <button
                     onClick={() => removeAt(index)}
                     title="Remove break"
@@ -148,5 +171,14 @@ export function QueueBar() {
         })}
       </div>
     </motion.div>
+
+    {/* Break countdown modal */}
+    {activeBreakMinutes !== null && (
+      <BreakTimerModal
+        minutes={activeBreakMinutes}
+        onClose={() => setActiveBreakMinutes(null)}
+      />
+    )}
+    </>
   );
 }

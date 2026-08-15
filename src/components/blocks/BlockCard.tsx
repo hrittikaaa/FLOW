@@ -25,6 +25,8 @@ interface BlockCardProps {
   isDragging?: boolean;
   queued?: boolean;
   onToggleQueue?: (block: FocusBlock) => void;
+  /** When true, the card pulses with a glow ring to draw attention to it. */
+  highlighted?: boolean;
 }
 
 const statusStyles: Record<FocusBlock["status"], string> = {
@@ -46,6 +48,7 @@ export function BlockCard({
   isDragging,
   queued,
   onToggleQueue,
+  highlighted,
 }: BlockCardProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const doneTasks = block.tasks.filter((t) => t.isDone).length;
@@ -68,13 +71,17 @@ export function BlockCard({
     <div
       className={cn(
         "rounded-xl2 p-[1.5px] transition-all duration-300",
-        isDragging && "scale-[1.02]"
+        isDragging && "scale-[1.02]",
+        highlighted && "ring-highlight"
       )}
       style={{
         background: categoryGradient,
-        boxShadow: isDragging
+        boxShadow: highlighted
+          ? `0 0 0 3px rgba(242,166,90,0.55), 0 0 28px -4px rgba(242,166,90,0.7), 0 8px 32px rgba(0,0,0,0.45)`
+          : isDragging
           ? `0 0 28px -4px ${categoryColor}99, 0 8px 32px rgba(0,0,0,0.45)`
           : `0 0 14px -6px ${categoryColor}55, 0 4px 16px rgba(0,0,0,0.3)`,
+        animation: highlighted ? "highlight-pulse 0.5s ease-out 2" : undefined,
       }}
     >
       {/* Inner card — translucent glass fill so the gradient ring glows through, clipped so the gradient shows only as the border */}

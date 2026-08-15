@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { useBlocksStore } from "@/store/useBlocksStore";
@@ -40,6 +40,11 @@ export function BlocksDashboard({ onSelectBlock, onResumeBlock, onQuickStartBloc
   const [tabDirection, setTabDirection] = useState(0);
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [page, setPage] = useState(1);
+  /** The block ID whose card should be pulsed+scrolled to after a QueueBar click. */
+  const [highlightedBlockId, setHighlightedBlockId] = useState<string | null>(null);
+  const highlightTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** One ref per rendered card so we can scroll to it. */
+  const cardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
   const handleTabChange = (next: FilterTab) => {
     setTabDirection(FILTER_ORDER.indexOf(next) > FILTER_ORDER.indexOf(tab) ? 1 : -1);
@@ -107,6 +112,36 @@ export function BlocksDashboard({ onSelectBlock, onResumeBlock, onQuickStartBloc
     }
   }
 
+  const handleHighlightBlock = useCallback((blockId: string) => {
+    // If the block isn't on the current page/tab, switch to "all" tab first
+    const blockExists = blocks.some((b) => b.id === blockId && b.status !== "archived");
+    if (!blockExists) return;
+
+    // Find which page the block is on under the current filter and switch there
+    const allNonArchived = blocks.filter((b) => b.status !== "archived");
+    const globalIdx = allNonArchived.findIndex((b) => b.id === blockId);
+    if (globalIdx === -1) return;
+
+    // Ensure we're on the "all" tab so the block is visible
+    if (tab !== "all") {
+      handleTabChange("all");
+    }
+
+    // Determine what page the block will be on
+    const targetPage = Math.floor(globalIdx / PAGE_SIZE) + 1;
+    setPage(targetPage);
+
+    setHighlightedBlockId(blockId);
+    if (highlightTimeoutRef.current) clearTimeout(highlightTimeoutRef.current);
+    highlightTimeoutRef.current = setTimeout(() => setHighlightedBlockId(null), 2000);
+
+    // Scroll after a short delay to allow re-render
+    setTimeout(() => {
+      const el = cardRefs.current.get(blockId);
+      el?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 80);
+  }, [blocks, tab, handleTabChange]);
+
   function handleDragEnter(hoverId: string) {
     const from = draggedIdRef.current;
     if (!from || from === hoverId) return;
@@ -123,7 +158,7 @@ export function BlocksDashboard({ onSelectBlock, onResumeBlock, onQuickStartBloc
 
   return (
     <div className="space-y-5">
-      <QueueBar />
+      <QueueBar onHighlightBlock={handleHighlightBlock} />
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Tabs value={tab} onValueChange={(v) => handleTabChange(v as FilterTab)}>
@@ -195,6 +230,10 @@ export function BlocksDashboard({ onSelectBlock, onResumeBlock, onQuickStartBloc
                         handleDragEnter(block.id);
                       }}
                       onDragOver={(e) => e.preventDefault()}
+                      ref={(el) => {
+                        if (el) cardRefs.current.set(block.id, el);
+                        else cardRefs.current.delete(block.id);
+                      }}
                     >
                       <BlockCard
                         block={block}
@@ -210,6 +249,7 @@ export function BlocksDashboard({ onSelectBlock, onResumeBlock, onQuickStartBloc
                         isDragging={isDragging}
                         queued={queuedBlockIds.has(block.id)}
                         onToggleQueue={handleToggleQueue}
+                        highlighted={highlightedBlockId === block.id}
                       />
                     </motion.div>
                   );
