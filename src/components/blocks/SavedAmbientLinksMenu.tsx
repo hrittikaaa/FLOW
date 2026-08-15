@@ -107,6 +107,7 @@ export function SavedAmbientLinksMenu({ currentUrl, onSelect }: SavedAmbientLink
         createPortal(
           <div
             ref={panelRef}
+            data-ambient-panel
             style={{ position: "fixed", top: position.top, right: position.right }}
             className="glass-panel-strong z-[100] w-72 overflow-hidden rounded-xl"
           >

@@ -138,7 +138,17 @@ export function BlockFormDialog({ open, onOpenChange, existingBlock, allBlocks }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent
+        className="max-w-2xl"
+        onInteractOutside={(e) => {
+          // The ambient links panel is portaled to document.body (outside the
+          // Radix dialog DOM tree). Without this guard, Radix treats clicks on
+          // it as "interact outside" and swallows the pointer event before the
+          // link button's onClick can fire.
+          const target = e.target as Element | null;
+          if (target?.closest("[data-ambient-panel]")) e.preventDefault();
+        }}
+      >
         <DialogHeader>
           <DialogTitle>{isEdit ? "Edit focus block" : "New focus block"}</DialogTitle>
           <DialogDescription>
