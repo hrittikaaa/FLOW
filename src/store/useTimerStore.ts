@@ -265,6 +265,7 @@ interface TimerState {
   restartSegment: () => void;
   /** Fully resets the block (all segments + runtime) back to its initial state. */
   restartBlock: (blockId: string) => void;
+  reanchorSegment: () => void;
 }
 
 export const useTimerStore = create<TimerState>((set, get) => ({
@@ -355,5 +356,8 @@ export const useTimerStore = create<TimerState>((set, get) => ({
     set({ activeBlockId: null, isRunning: false, isStrictLocked: false });
     // resetBlock handles both local state and DB persistence.
     useBlocksStore.getState().resetBlock(blockId);
+  },
+  reanchorSegment: () => {
+    if (anchor) setAnchor(0);
   },
 }));

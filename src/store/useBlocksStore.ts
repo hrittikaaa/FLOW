@@ -3,6 +3,10 @@ import { supabase } from "@/lib/supabase";
 import { generateSessionPlan } from "@/lib/sessionCalculator";
 import type { BlockDraft, BlockSegment, BlockStatus, FocusBlock, SegmentKind, Task } from "@/types";
 import type { Database } from "@/types/database";
+// Note: circular import with useTimerStore is intentional and safe — both stores
+// are Zustand singletons that are fully initialised before any action is called.
+// We only read getState() at call time, never at module-init time.
+import { useTimerStore } from "@/store/useTimerStore";
 
 // Tracks the last time *this* client wrote runtime state for a block, so an
 // incoming realtime echo of our own 5-second sync doesn't overwrite smooth
@@ -321,12 +325,23 @@ export const useBlocksStore = create<BlocksState>((set, get) => ({
       // block pointing at segment rows that had just been deleted from the
       // DB until the next full refetch quietly "fixed" it.
       const completedRows = block.segments.filter((s) => s.isCompleted);
+      // Reset currentSegmentIndex to point at the first newly-inserted (incomplete)
+      // segment. Without this, the running timer keeps the old index which may now
+      // reference a segment row that was just deleted, causing it to silently stall.
+      const newSegmentIndex = completedRows.length;
       recentLocalRuntimeWrites.set(id, Date.now());
+      // Persist the corrected segment index to the DB so it survives a reload.
+      await supabase
+        .from("focus_blocks")
+        .update({ current_segment_index: newSegmentIndex, elapsed_seconds_in_segment: 0 })
+        .eq("id", id);
       set({
         blocks: get().blocks.map((b) =>
           b.id === id
             ? {
                 ...updated,
+                currentSegmentIndex: newSegmentIndex,
+                elapsedSecondsInSegment: 0,
                 segments: [...completedRows, ...(freshRows ?? []).map(rowToSegment)].sort(
                   (a, b2) => a.position - b2.position
                 ),
@@ -334,6 +349,9 @@ export const useBlocksStore = create<BlocksState>((set, get) => ({
             : b
         ),
       });
+      // If the timer is currently running this block, re-anchor the wall clock
+      // to t=0 for the new segment so the old elapsed time is not replayed.
+      useTimerStore.getState().reanchorSegment();
     }
   },
 
