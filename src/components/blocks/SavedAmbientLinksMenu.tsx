@@ -49,10 +49,13 @@ export function SavedAmbientLinksMenu({ currentUrl, onSelect }: SavedAmbientLink
         setAdding(false);
       }
     }
-    // Close on any scroll (capture phase catches scroll on the dialog's inner
-    // scroll container too) rather than trying to keep a floating panel glued
-    // to a moving anchor.
-    function handleScroll() {
+    // Close on scroll — but only when the scroll originates *outside* the
+    // floating panel itself (e.g. the user scrolls the page/dialog behind it).
+    // Clicks inside the panel can trigger a micro-scroll on the dialog's
+    // overflow container; filtering those out prevents the menu from closing
+    // before the item's onClick fires.
+    function handleScroll(e: Event) {
+      if (panelRef.current && panelRef.current.contains(e.target as Node)) return;
       setMenuOpen(false);
       setAdding(false);
     }
